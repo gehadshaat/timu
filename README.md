@@ -12,7 +12,7 @@ Timu files every Claude Code and claude.ai session under a teammate, a team, a p
   <a href="#your-first-five-minutes">First five minutes</a> ·
   <a href="#a-tour">Tour</a> ·
   <a href="#let-claude-run-timu-mcp">Let Claude run it</a> ·
-  <a href="https://gehadshaat.github.io/Timu/">Website</a>
+  <a href="https://gehadshaat.github.io/timu/">Website</a>
 </p>
 
 ---
@@ -22,7 +22,7 @@ Timu files every Claude Code and claude.ai session under a teammate, a team, a p
 You need **Node 22.16 or newer**. To pull in your sessions, you also need **Claude Code** signed in on the same machine. There's nothing else: no database server, Docker or cloud account. Timu keeps everything in one SQLite file.
 
 ```bash
-git clone https://github.com/gehadshaat/Timu.git
+git clone https://github.com/gehadshaat/timu.git
 cd Timu
 npm run setup     # installs everything and writes .env.local (safe to re-run)
 npm run dev       # open http://localhost:3100
@@ -203,7 +203,7 @@ All data access is plain SQL in `src/lib` (through `src/lib/db.ts`), so moving t
 
 ### The website
 
-The project site is plain HTML in `docs/`, with the screenshots in `docs/images/`. To publish it, open **Settings → Pages** on GitHub and choose **Deploy from a branch → `main` / `docs`**. It then lives at https://gehadshaat.github.io/Timu/. GitHub Pages on a private repo needs a paid GitHub plan; on a public repo it's free.
+The project site is plain HTML in `docs/`, with the screenshots in `docs/images/`. To publish it, open **Settings → Pages** on GitHub and choose **Deploy from a branch → `main` / `docs`**. It then lives at https://gehadshaat.github.io/timu/. GitHub Pages on a private repo needs a paid GitHub plan; on a public repo it's free.
 
 The screenshots come from a demo workspace (Sunbeam Co and Duckworks), not real data. Retake them whenever the UI changes.
 
