@@ -1,5 +1,6 @@
 import type { NormalizedSession, SessionStatus } from "../types";
 import { clip, stripHarnessTags } from "../text";
+import { publishedArtifactLinks } from "./artifacts";
 
 /**
  * Local Claude Code transcripts: ~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl
@@ -121,7 +122,8 @@ export function parseTranscript(
     messageCount,
     startedAt,
     lastActivityAt: lastAt,
-    raw: { cwd, resume: `claude --resume ${sessionId}` },
+    // Artifacts this session published (see publishedArtifactLinks).
+    raw: { cwd, resume: `claude --resume ${sessionId}`, artifacts: publishedArtifactLinks(jsonl) },
   };
 }
 

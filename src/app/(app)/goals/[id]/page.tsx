@@ -1,3 +1,5 @@
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Crumbs } from "@/components/Crumbs";
@@ -73,6 +75,16 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
         asks={Object.fromEntries(asks.map((a) => [a.session.id, a.task.id]))}
         single
       />
+
+      {(() => {
+        const artifacts = getArtifacts(org, { goalId: row.id });
+        return artifacts.length ? (
+          <section id="artifacts" className="scroll-mt-6 space-y-2">
+            <h2 className="font-display text-xl font-bold">🖼️ Artifacts from this goal <span className="text-sm font-semibold text-zinc-400">· {artifacts.length}</span></h2>
+            <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped={false} />
+          </section>
+        ) : null;
+      })()}
 
       <p className="text-sm">
         <Link href={projectHref(project.slug)} className="font-semibold text-orange-700 hover:underline">

@@ -13,6 +13,7 @@ import { THEMES } from "../../themes";
 import { getMemory, getStaleDays, triageEngine } from "../../triage";
 import type { SessionRow, TaskRow } from "../../types";
 import { findSessions } from "../lookup";
+import { getArtifacts, type ArtifactView } from "../../artifacts";
 import { resolveCompany, resolveProject, resolveTeam, resolveTeammate } from "../resolve";
 import { COMPANY_REF, defineTool, PROJECT_REF, ref, SESSION_REF, TEAM_REF, TEAMMATE_REF } from "../tool";
 import { askBrief, getWorkload, placeOfSession, projectNode, sessionBrief, teammateNode, todoBrief } from "../views";
@@ -26,6 +27,11 @@ const mini = (org: Org, s: SessionRow) => {
   return { id: s.id, title: s.title, teammate: agent?.name ?? null, project: project?.name ?? null };
 };
 
+/** An artifact in a tool result: enough to open it and see where it's filed. */
+export function artifactBrief(a: ArtifactView) {
+  return { id: a.id, title: a.title, url: a.url, project: a.project?.name ?? null, company: a.company?.name ?? null, session: a.session ? { id: a.session.id, title: a.session.title } : null };
+}
+
 export function registerReadTools(server: McpServer): void {
   defineTool(
     server,
@@ -34,7 +40,7 @@ export function registerReadTools(server: McpServer): void {
       title: "Org chart",
       kind: "read",
       description:
-        "The org chart: companies → projects → teams → teammates, plus each project's goals, with ids. Each teammate shows how many live sessions they own, how many are working, and how many asks wait on the user. Also counts unfiled sessions (no owner) and open asks. Start here; narrow with company or project.",
+        "The org chart: companies → projects → teams → teammates, plus each project's goals, with ids. Each teammate shows how many live sessions they own, how many are working, and how many asks wait on the user. Companies and projects count their artifacts (see list_artifacts). Also counts unfiled sessions (no owner) and open asks. Start here; narrow with company or project.",
       input: z.object({
         company: ref(COMPANY_REF).optional(),
         project: ref(PROJECT_REF).optional(),
@@ -42,6 +48,8 @@ export function registerReadTools(server: McpServer): void {
     },
     async ({ company, project }) => {
       const [org, load] = await Promise.all([getOrg(), getWorkload()]);
+      const arts = getArtifacts(org);
+      const projectNodeWithArtifacts = (p: (typeof org.projects)[number]) => ({ ...projectNode(org, p, load), artifacts: arts.filter((a) => a.project?.id === p.id).length });
       const onlyCompany = company ? resolveCompany(org, company) : null;
       const onlyProject = project ? resolveProject(org, project) : null;
       const projects = org.projects.filter(
@@ -54,12 +62,13 @@ export function registerReadTools(server: McpServer): void {
           name: c.name,
           emoji: c.emoji,
           description: c.description,
-          projects: projects.filter((p) => p.company_id === c.id).map((p) => projectNode(org, p, load)),
+          artifacts: arts.filter((a) => a.company?.id === c.id).length,
+          projects: projects.filter((p) => p.company_id === c.id).map(projectNodeWithArtifacts),
         }))
         .filter((c) => !onlyProject || c.projects.length);
       return {
         companies,
-        projects_without_company: onlyCompany ? [] : projects.filter((p) => !p.company_id).map((p) => projectNode(org, p, load)),
+        projects_without_company: onlyCompany ? [] : projects.filter((p) => !p.company_id).map(projectNodeWithArtifacts),
         unfiled_sessions: load.unfiled,
         open_asks: load.openAsks,
       };
@@ -73,7 +82,7 @@ export function registerReadTools(server: McpServer): void {
       title: "Project details",
       kind: "read",
       description:
-        "Everything in one project: its company, teams and teammates (with workload), goals with progress, milestones, linked sessions and to-dos, and the project's open to-dos.",
+        "Everything in one project: its company, teams and teammates (with workload), goals with progress, milestones, linked sessions, to-dos and the artifacts those sessions made, the project's open to-dos, and all of its artifacts.",
       input: z.object({ project: ref(PROJECT_REF) }),
     },
     async ({ project }) => {
@@ -81,6 +90,8 @@ export function registerReadTools(server: McpServer): void {
       const p = resolveProject(org, project);
       const [load, goals, todos] = await Promise.all([getWorkload(), getGoals(p.id), getTodos({ projectId: p.id })]);
       const company = org.companies.find((c) => c.id === p.company_id);
+      const arts = getArtifacts(org, { projectId: p.id });
+      const allArts = getArtifacts(org);
       return {
         ...projectNode(org, p, load),
         company: company ? { id: company.id, name: company.name } : null,
@@ -96,8 +107,10 @@ export function registerReadTools(server: McpServer): void {
           milestones: g.milestones.map((m) => ({ id: m.id, title: m.title, done: m.done })),
           sessions: g.sessions.map((s) => ({ id: s.id, title: s.title, status: s.status })),
           todos: g.todos.map((t) => ({ id: t.id, title: t.title, done: t.status === "done" })),
+          artifacts: allArts.filter((a) => a.session && g.sessions.some((s) => s.id === a.session!.id)).map(artifactBrief),
         })),
         todos: todos.map(todoBrief),
+        artifacts: arts.map(artifactBrief),
       };
     },
   );
@@ -108,7 +121,7 @@ export function registerReadTools(server: McpServer): void {
     {
       title: "Teammate details",
       kind: "read",
-      description: "One teammate: where they sit (team, project, company), their sessions (newest first, up to 50), their to-dos and the asks they're waiting on.",
+      description: "One teammate: where they sit (team, project, company), their sessions (newest first, up to 50), their to-dos, the asks they're waiting on, and the artifacts their sessions made.",
       input: z.object({ teammate: ref(TEAMMATE_REF) }),
     },
     async ({ teammate }) => {
@@ -125,6 +138,7 @@ export function registerReadTools(server: McpServer): void {
         sessions: sessions.slice(0, 50).map((s) => sessionBrief(org, s)),
         todos: todos.filter((t) => t.agent?.id === a.id).map(todoBrief),
         asks: inbox.filter((i) => i.agent?.id === a.id).map((i) => askBrief(org, i.task, i.session)),
+        artifacts: getArtifacts(org, { agentId: a.id }).map(artifactBrief),
       };
     },
   );
@@ -175,7 +189,7 @@ export function registerReadTools(server: McpServer): void {
     {
       title: "Session details",
       kind: "read",
-      description: "One session in full: owner, goal, status, first and last message, triage verdict and its open ask if it has one.",
+      description: "One session in full: owner, goal, status, first and last message, triage verdict, its open ask if it has one, and the artifacts it made.",
       input: z.object({ session: ref(SESSION_REF) }),
     },
     async ({ session }) => {
@@ -195,6 +209,7 @@ export function registerReadTools(server: McpServer): void {
         title_locked: s.title_locked,
         triage: s.triage,
         open_ask: task ? askBrief(org, task, s) : null,
+        artifacts: getArtifacts(org, { sessionId: s.id }).map(artifactBrief),
       };
     },
   );

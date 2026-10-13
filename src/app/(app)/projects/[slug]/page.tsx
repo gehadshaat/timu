@@ -3,6 +3,8 @@ import Link from "next/link";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { GoalsTable } from "@/components/goals/GoalsTable";
 import { RoutinesBoard } from "@/components/routines/RoutinesBoard";
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import { getRoutines, toRoutineItem } from "@/lib/routines";
 import { Renameable } from "@/components/ui/Renameable";
 import { getComments, getCommentsMap } from "@/lib/comments";
@@ -21,6 +23,7 @@ import { getGoals, getInbox, getOffice, getOrg, getProjectBySlug, getRecentWins,
 
 const VIEWS = [
   { key: "board", label: "Board", icon: "📋" },
+  { key: "artifacts", label: "Artifacts", icon: "🖼️" },
   { key: "team", label: "Team", icon: "🪑" },
   { key: "notes", label: "Notes", icon: "💬" },
 ] as const;
@@ -51,6 +54,7 @@ export default async function ProjectPage({
   const goalComments = await getCommentsMap("goal", goals.map((g) => g.goal.id));
   const asks = inbox.filter((i) => i.project?.id === project.id);
   const routines = view === "board" ? getRoutines(org, { projectId: project.id }).map(toRoutineItem) : [];
+  const artifacts = getArtifacts(org, { projectId: project.id });
   const options = orgOptions(org);
   const sessionOptions = sessions.map(({ id, title, goal_id }) => ({ id, title, goal_id }));
   const projectWins = wins.get(project.id) ?? [];
@@ -122,6 +126,7 @@ export default async function ProjectPage({
             <span aria-hidden>{v.icon}</span> {v.label}
             {v.key === "team" ? <span className="ml-1 text-xs text-zinc-400">{agentCount}</span> : null}
             {v.key === "notes" && comments.length ? <span className="ml-1 text-xs text-zinc-400">{comments.length}</span> : null}
+            {v.key === "artifacts" && artifacts.length ? <span className="ml-1 text-xs text-zinc-400">{artifacts.length}</span> : null}
           </Link>
         ))}
       </nav>
@@ -154,6 +159,8 @@ export default async function ProjectPage({
           </details>
         </>
       ) : null}
+
+      {view === "artifacts" ? <ArtifactsBoard items={artifacts} options={options} grouped={false} empty={<>No artifacts here yet. Import your gallery on the Artifacts page (or ask Claude to), or file one here from its project cell.</>} /> : null}
 
       {view === "team" ? (
         <>

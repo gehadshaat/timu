@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AskList } from "@/components/asks/AskList";
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import { OpenSession } from "@/components/asks/AskActions";
 import { Character } from "@/components/Character";
 import { CommentThread } from "@/components/comments/CommentThread";
@@ -32,6 +34,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const asks = open.map((task) => toAskView({ task, session: s, agent, team, project }, org));
   const resume = s.source === "local" ? `claude --resume ${s.external_id}` : null;
   const v = s.triage;
+  const artifacts = getArtifacts(org, { sessionId: s.id });
 
   return (
     <div className="space-y-8">
@@ -171,6 +174,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           </div>
         </aside>
       </section>
+
+      {artifacts.length ? (
+        <section id="artifacts" className="scroll-mt-6 space-y-2">
+          <h2 className="font-display text-xl font-bold">🖼️ Artifacts from this session</h2>
+          <ArtifactsBoard items={artifacts} options={options} grouped={false} />
+        </section>
+      ) : null}
 
       <CommentThread entity="session" entityId={s.id} initial={comments} />
     </div>

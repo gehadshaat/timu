@@ -12,7 +12,7 @@ Timu files every Claude Code and claude.ai session under a teammate, a team, a p
   <a href="#your-first-five-minutes">First five minutes</a> ·
   <a href="#a-tour">Tour</a> ·
   <a href="#let-claude-run-timu-mcp">Let Claude run it</a> ·
-  <a href="https://gehadshaat.github.io/Timu/">Website</a>
+  <a href="https://gehadshaat.github.io/timu/">Website</a>
 </p>
 
 ---
@@ -22,7 +22,7 @@ Timu files every Claude Code and claude.ai session under a teammate, a team, a p
 You need **Node 22.16 or newer**. To pull in your sessions, you also need **Claude Code** signed in on the same machine. There's nothing else: no database server, Docker or cloud account. Timu keeps everything in one SQLite file.
 
 ```bash
-git clone https://github.com/gehadshaat/Timu.git
+git clone https://github.com/gehadshaat/timu.git
 cd Timu
 npm run setup     # installs everything and writes .env.local (safe to re-run)
 npm run dev       # open http://localhost:3100
@@ -110,6 +110,24 @@ Timu offers two ways to get them:
 
 Claude can read them with the `list_routines` MCP tool.
 
+### Artifacts
+
+The **🖼️ Artifacts** page (under More) collects your Claude artifacts. Companies and projects each have an **Artifacts** tab with theirs; goal, team, person and session pages list the ones their sessions made, and 🖼️ chips on session and goal rows jump to them. There are two kinds:
+
+- **Published artifacts:** pages on claude.ai (`claude.ai/artifact/…`).
+- **Chat artifacts:** documents, code and apps Claude made inside your claude.ai chats.
+
+How they get in:
+
+- **From your sessions:** when a local Claude Code session publishes an artifact, Timu sees it in the transcript and links it to that session. Only actual publishes count; links a session merely mentions or lists don't. Chat artifacts come in with your claude.ai chats (export or Chrome extension).
+- **Your whole gallery:** with Timu connected over MCP, ask Claude *"list my artifacts and import them into Timu"*. Or paste the list Claude prints under **Update artifacts**.
+
+How they're filed:
+
+- Under the project of the session that made them; otherwise, by matching their title to a project or company name.
+- Click an artifact's project cell to move it. Artifacts you've moved stay where you put them.
+- For Claude: the `list_artifacts`, `import_artifacts` and `move_artifact` MCP tools.
+
 ### Chrome extension
 
 1. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and select `extension/`.
@@ -122,7 +140,13 @@ The extension reads claude.ai's own web API with your existing session cookies. 
 
 Timu is also an MCP server, so Claude can do everything you can do in the UI: "file my unfiled sessions", "set up a Marketing team for Sunbeam with an SEO lead", "what needs me today?", "close the asks about merged PRs and remember that rule".
 
-Everything the UI does in bulk works over MCP too: handle many asks at once, move, archive or re-file sessions, add to-dos in quick-add syntax (`Write FAQ @Maya #sunbeam !high due:fri`, one per line), add goals and milestones, hire several people, move people and projects. Changes that can be undone return an `undo_id` for the `undo` tool. Claude can also `search` by name and read or leave comments on any company, project, team, teammate, goal, session or to-do.
+Everything the UI does in bulk works over MCP too: handle many asks at once, move, archive or re-file sessions, add to-dos in quick-add syntax (`Write FAQ @Maya #sunbeam !high due:fri`, one per line), add goals and milestones, hire several people, move people and projects. Changes that can be undone return an `undo_id` for the `undo` tool. Claude can also `search` by name and read or leave comments on any company, project, team, teammate, goal, session or to-do. It can also:
+
+- set a session's status, like the board's status cell (`set_session_status`: needs_me / done / idle / claude);
+- read and import your routines (`list_routines`, `import_routines`);
+- read, import and file your artifacts at any level (`list_artifacts` by company, project, goal, teammate or session; `import_artifacts`; `move_artifact`).
+
+`get_org`, `get_project`, `get_teammate` and `get_session` include the related artifacts.
 
 `npm run setup` (or `npm run dev`) generates `TIMU_MCP_TOKEN` in `.env.local`. **Settings → Let Claude run Timu** shows the commands below with your URL filled in.
 
@@ -183,9 +207,11 @@ All data access is plain SQL in `src/lib` (through `src/lib/db.ts`), so moving t
 
 ## Development
 
+Contributing, or asking Claude to change Timu? Start with [`CLAUDE.md`](CLAUDE.md). It covers the map of the code, the patterns to follow (migrations, boards, MCP tools, sign-in), the public-repo rules (demo data only) and the checklist every feature must pass: tests, MCP, README, setup and the website.
+
 ### The website
 
-The project site is plain HTML in `docs/`, with the screenshots in `docs/images/`. To publish it, open **Settings → Pages** on GitHub and choose **Deploy from a branch → `main` / `docs`**. It then lives at https://gehadshaat.github.io/Timu/. GitHub Pages on a private repo needs a paid GitHub plan; on a public repo it's free.
+The project site is plain HTML in `docs/`, with the screenshots in `docs/images/`. To publish it, open **Settings → Pages** on GitHub and choose **Deploy from a branch → `main` / `docs`**. It then lives at https://gehadshaat.github.io/timu/. GitHub Pages on a private repo needs a paid GitHub plan; on a public repo it's free.
 
 The screenshots come from a demo workspace (Sunbeam Co and Duckworks), not real data. Retake them whenever the UI changes.
 

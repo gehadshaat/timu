@@ -1,3 +1,5 @@
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Character } from "@/components/Character";
@@ -11,10 +13,11 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { Renameable } from "@/components/ui/Renameable";
 import { getComments } from "@/lib/comments";
 import { personHref, projectHref, resumeFor, teamHref } from "@/lib/links";
-import { getCompanyBySlug, getGoals, getInbox, getOffice, getOrg } from "@/lib/queries";
+import { getCompanyBySlug, getGoals, getInbox, getOffice, getOrg, orgOptions } from "@/lib/queries";
 
 const VIEWS = [
   { key: "board", label: "Board", icon: "📋" },
+  { key: "artifacts", label: "Artifacts", icon: "🖼️" },
   { key: "people", label: "People", icon: "🧑‍🤝‍🧑" },
   { key: "notes", label: "Notes", icon: "💬" },
 ] as const;
@@ -51,8 +54,10 @@ export default async function CompanyPage({
       progress: g.progress,
       items: g.milestones.length + g.sessions.length + g.todos.length,
       sessions: g.sessions.map((x) => ({ id: x.id, title: x.title, status: x.status_override ?? x.status, url: x.url, resume: resumeFor(x) })),
+      artifacts: g.sessions.reduce((n, x) => n + (x.artifact_count ?? 0), 0),
     })),
   }));
+  const artifacts = getArtifacts(org, { companyId: company.id });
   const tabHref = (key: View) => (key === "board" ? `/companies/${company.slug}` : `/companies/${company.slug}?view=${key}`);
 
   return (
@@ -101,6 +106,7 @@ export default async function CompanyPage({
           >
             <span aria-hidden>{v.icon}</span> {v.label}
             {v.key === "notes" && comments.length ? <span className="ml-1 text-xs text-zinc-400">{comments.length}</span> : null}
+            {v.key === "artifacts" && artifacts.length ? <span className="ml-1 text-xs text-zinc-400">{artifacts.length}</span> : null}
           </Link>
         ))}
       </nav>
@@ -113,6 +119,8 @@ export default async function CompanyPage({
           </div>
         </>
       ) : null}
+
+      {view === "artifacts" ? <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped empty={<>No artifacts here yet. Import your gallery on the Artifacts page (or ask Claude to), or file one here from its project cell.</>} /> : null}
 
       {view === "people" ? (
         <>

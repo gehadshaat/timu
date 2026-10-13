@@ -10,6 +10,7 @@ import {
 import { applyDraft, startOrganize, type OrganizeJob } from "@/lib/organize";
 import { ProposalSchema } from "@/lib/classify/schema";
 import * as ops from "@/lib/ops";
+import { describeArtifacts, importArtifacts, moveArtifact } from "@/lib/artifacts";
 import { describeRoutines, importRoutinesFromApi, importRoutinesFromJson } from "@/lib/routines";
 import type { ActionResult, EntityKind, EntityValues, GoalInput, SessionFate, TodoInput } from "@/lib/ops";
 import type { IngestResult } from "@/lib/ingest";
@@ -54,6 +55,30 @@ export async function importCloudJsonAction(_: ActionResult | null, form: FormDa
     return { ok: false, message: "That isn't valid JSON." };
   }
   return attempt("Cloud sessions", () => importCloudFromJson(payload));
+}
+
+/** Artifacts pasted as Claude prints them (or JSON). */
+export async function importArtifactsAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const text = String(form.get("text") ?? "");
+  if (!text.trim()) return { ok: false, message: "Paste your artifacts list first." };
+  try {
+    const r = importArtifacts(text);
+    revalidatePath("/", "layout");
+    return { ok: true, message: describeArtifacts(r) };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** File an artifact under a project yourself (null takes it out). */
+export async function moveArtifactAction(id: string, projectId: string | null): Promise<ActionResult> {
+  try {
+    moveArtifact(id, projectId);
+    revalidatePath("/", "layout");
+    return { ok: true, message: projectId ? "Artifact filed" : "Artifact taken out of its project" };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /** Routines pasted as JSON (the RemoteTrigger tool's list output, or an API page). */

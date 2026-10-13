@@ -1,4 +1,5 @@
 import "server-only";
+import { fileArtifacts, linkSessionArtifacts } from "./artifacts";
 import { all, get, insert, now, update } from "./db";
 import { deriveTask, verdictToDraft } from "./tasks";
 import { judgeSessions } from "./triage";
@@ -95,7 +96,16 @@ export async function ingestSessions(source: SessionSource, sessions: Normalized
         }
         if (await syncTask(c.id, c.s, c.activityChanged, verdict, c.archived)) result.tasksOpened++;
       }
+      // Artifacts these sessions link to (see sources/artifacts); filed after the organiser places the sessions.
+      // An empty list counts too: it clears links a session no longer claims. Sources that don't
+      // report artifacts (no list at all) leave their sessions' links alone.
+      linkSessionArtifacts(
+        changes
+          .filter((c) => Array.isArray(c.s.raw.artifacts))
+          .map((c) => ({ sessionId: c.id, artifacts: c.s.raw.artifacts as { id: string; url: string; title?: string | null }[] })),
+      );
     }
+    fileArtifacts();
 
     update("import_runs", { finished_at: now(), imported: result.imported, updated: result.updated }, "id = ?", run.id);
     return result;
