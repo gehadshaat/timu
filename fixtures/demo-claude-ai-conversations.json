@@ -1,0 +1,56 @@
+[
+ {
+  "uuid": "0d3c1f6e-0000-4000-8000-000000000001",
+  "name": "Weekend trip packing list",
+  "created_at": "2026-10-10T00:00:00Z",
+  "updated_at": "2026-10-10T01:00:00Z",
+  "chat_messages": [
+   {
+    "sender": "human",
+    "text": "Help me pack for a 3 day hike",
+    "created_at": "2026-10-10T00:00:00Z"
+   },
+   {
+    "sender": "assistant",
+    "text": "Here is a list... Do you want me to add a first-aid kit checklist too?",
+    "created_at": "2026-10-10T01:00:00Z"
+   }
+  ]
+ },
+ {
+  "uuid": "0d3c1f6e-0000-4000-8000-000000000002",
+  "name": "Pricing strategy for lunchbox bundles",
+  "created_at": "2026-10-11T20:00:00Z",
+  "updated_at": "2026-10-11T21:00:00Z",
+  "chat_messages": [
+   {
+    "sender": "human",
+    "text": "How should I price a 3-pack bundle of our lunchboxes?",
+    "created_at": "2026-10-11T20:00:00Z"
+   },
+   {
+    "sender": "assistant",
+    "text": "Three options: 10% off, buy-2-get-1, or tiered. Which margin floor should I assume?",
+    "created_at": "2026-10-11T21:00:00Z"
+   }
+  ]
+ },
+ {
+  "uuid": "0d3c1f6e-0000-4000-8000-000000000003",
+  "name": "Q3 bookkeeping categories",
+  "created_at": "2026-10-08T18:00:00Z",
+  "updated_at": "2026-10-08T19:00:00Z",
+  "chat_messages": [
+   {
+    "sender": "human",
+    "text": "Map these expenses to accounting categories",
+    "created_at": "2026-10-08T18:00:00Z"
+   },
+   {
+    "sender": "assistant",
+    "text": "Done \u2014 all 42 expenses are categorised in the table above.",
+    "created_at": "2026-10-08T19:00:00Z"
+   }
+  ]
+ }
+]

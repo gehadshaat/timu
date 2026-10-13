@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timu — your Claude sessions, run like a small company</title>
+<meta name="description" content="Timu files every Claude Code and claude.ai session under a teammate, a project and a goal, and shows you the few things that actually need you. Local, free, one SQLite file.">
+<meta property="og:title" content="Timu — your Claude sessions, run like a small company">
+<meta property="og:description" content="Boards for every company, project and goal; a walkable office; one place to clear what needs you.">
+<meta property="og:image" content="https://gehadshaat.github.io/Timu/images/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐝</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Pixelify+Sans:wght@500;700&family=Gaegu:wght@700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f1ede3;
+    --paper-2: #e7e1d2;
+    --ink: #1d1a16;
+    --ink-2: #4d463c;
+    --hot: #f2542d;      /* "needs you" */
+    --sun: #f6b23b;      /* working */
+    --leaf: #1fae6b;     /* done */
+    --sky: #4d8ef0;
+    --grape: #8a5cd8;
+    --night: #2d2f52;    /* Gather-ish floor at night */
+    --line: 3px solid var(--ink);
+    --shadow: 6px 6px 0 var(--ink);
+    --shadow-sm: 3px 3px 0 var(--ink);
+    --display: "Bricolage Grotesque", Georgia, serif;
+    --pixel: "Pixelify Sans", "Courier New", monospace;
+    --hand: "Gaegu", "Comic Sans MS", cursive;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 17px/1.55 var(--display);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  img { max-width: 100%; height: auto; display: block; }
+  ::selection { background: var(--sun); }
+
+  /* ---------- menubar (the "desktop") ---------- */
+  .menubar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 22px;
+    padding: 0 18px; height: 40px;
+    background: var(--paper);
+    border-bottom: var(--line);
+    font: 700 15px var(--pixel);
+  }
+  .menubar .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 18px; }
+  .menubar nav { display: flex; gap: 18px; }
+  .menubar nav a { text-decoration: none; }
+  .menubar nav a:hover { text-decoration: underline; text-decoration-thickness: 2px; }
+  .menubar .spacer { flex: 1; }
+  .menubar .gh {
+    text-decoration: none; padding: 3px 10px; border: 2px solid var(--ink); background: var(--sun); box-shadow: 2px 2px 0 var(--ink);
+  }
+  .menubar .clock { font-variant-numeric: tabular-nums; }
+  @media (max-width: 720px) { .menubar nav, .menubar .clock { display: none; } }
+
+  /* ---------- pixel floor (Gather) ---------- */
+  .floor {
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.06) 2px, transparent 2px) 0 0/32px 32px,
+      linear-gradient(rgba(0,0,0,.06) 2px, transparent 2px) 0 0/32px 32px,
+      repeating-conic-gradient(#e9dcc3 0 25%, #e2d3b6 0 50%) 0 0/64px 64px;
+  }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative; overflow: hidden;
+    border-bottom: var(--line);
+    padding: 64px 24px 96px;
+  }
+  .hero-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.15fr; gap: 48px; align-items: center; }
+  @media (max-width: 960px) { .hero-inner { grid-template-columns: 1fr; } }
+  .eyebrow { font: 700 14px var(--pixel); letter-spacing: .06em; display: inline-block; padding: 4px 10px; background: var(--ink); color: var(--paper); }
+  h1 {
+    font: 800 clamp(44px, 6.4vw, 84px)/0.95 var(--display);
+    letter-spacing: -0.03em;
+    margin: 18px 0 18px;
+  }
+  h1 .mark { background: var(--sun); padding: 0 .12em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .lede { font-size: 20px; max-width: 34ch; color: var(--ink-2); margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font: 800 18px var(--display); text-decoration: none;
+    padding: 12px 20px; border: var(--line); box-shadow: var(--shadow-sm); background: var(--hot); color: #fff;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .btn:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.ghost { background: var(--paper); color: var(--ink); }
+  .stickers { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+  .sticker {
+    font: 700 13px var(--pixel); padding: 5px 10px; border: 2px solid var(--ink); background: #fff;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .sticker:nth-child(1) { transform: rotate(-3deg); background: #fff3d6; }
+  .sticker:nth-child(2) { transform: rotate(2deg); background: #dff4e8; }
+  .sticker:nth-child(3) { transform: rotate(-1deg); background: #e5ecff; }
+  .sticker:nth-child(4) { transform: rotate(3deg); background: #f3e8ff; }
+
+  /* ---------- OS windows (PostHog) ---------- */
+  .win {
+    position: relative; background: #fff; border: var(--line); box-shadow: var(--shadow);
+  }
+  .win .bar {
+    display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px;
+    border-bottom: var(--line); background: var(--paper-2);
+    font: 700 14px var(--pixel); color: var(--ink);
+  }
+  .win .bar .dots { display: flex; gap: 6px; }
+  .win .bar .dots i { width: 12px; height: 12px; border: 2px solid var(--ink); display: block; background: #fff; }
+  .win .bar .dots i:first-child { background: var(--hot); }
+  .win .bar .title { flex: 1; text-align: center; }
+  .win .bar .ctl { font-family: var(--mono); font-size: 12px; opacity: .7; }
+  .win.tilt-l { transform: rotate(-1.2deg); }
+  .win.tilt-r { transform: rotate(1deg); }
+  .hero .win { z-index: 2; }
+
+  /* scribbles on top of screenshots */
+  .note {
+    position: absolute; z-index: 3; font: 700 23px/1.1 var(--hand); color: var(--hot); max-width: 15ch;
+    filter: drop-shadow(1px 1px 0 #fff);
+  }
+  .note svg { display: block; margin-top: 2px; }
+
+  /* ---------- the walking bee (pixel sprite) ---------- */
+  .walker { position: absolute; bottom: 22px; left: -80px; z-index: 1; animation: walk 22s linear infinite; }
+  .walker svg { width: 56px; height: 56px; image-rendering: pixelated; animation: bob .5s steps(2) infinite; }
+  .walker .bubble {
+    position: absolute; bottom: 62px; left: 26px; white-space: nowrap;
+    font: 700 13px var(--pixel); background: #fff; border: 2px solid var(--ink); padding: 3px 8px; box-shadow: 2px 2px 0 var(--ink);
+  }
+  @keyframes walk { to { transform: translateX(calc(100vw + 160px)); } }
+  @keyframes bob { 50% { transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .walker { animation: none; left: 24px; }
+    .walker svg { animation: none; }
+    .btn, .shot { transition: none; }
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 88px 24px; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h2 { font: 800 clamp(34px, 4.4vw, 54px)/1 var(--display); letter-spacing: -0.025em; margin: 0 0 14px; }
+  .kicker { font: 700 15px var(--pixel); color: var(--hot); margin-bottom: 10px; display: block; }
+  .sub { font-size: 19px; color: var(--ink-2); max-width: 60ch; margin: 0 0 40px; }
+
+  /* install: a terminal window */
+  .install { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: start; }
+  /* Grid children may shrink below their content, so long lines scroll inside the terminal. */
+  .install > *, .hero-inner > *, .feature > * { min-width: 0; }
+  @media (max-width: 960px) { .install { grid-template-columns: 1fr; } }
+  .term { background: var(--night); color: #f4f1ea; }
+  .term .bar { background: #3c3f6b; color: #f4f1ea; border-bottom-color: var(--ink); }
+  .term pre { margin: 0; padding: 22px 22px 26px; font: 15px/1.9 var(--mono); overflow-x: auto; }
+  .term .c { color: #9aa0d6; }
+  .term .p { color: var(--sun); user-select: none; }
+  .copy {
+    font: 700 13px var(--pixel); border: 2px solid #f4f1ea; background: transparent; color: #f4f1ea; padding: 2px 10px; cursor: pointer;
+  }
+  .copy:hover { background: #f4f1ea; color: var(--night); }
+  .need { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  .need li { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; }
+  .need .px {
+    width: 44px; height: 44px; border: var(--line); display: grid; place-items: center; font: 700 18px var(--pixel); background: #fff; box-shadow: var(--shadow-sm);
+  }
+  .need b { font-weight: 800; }
+  .need p { margin: 2px 0 0; color: var(--ink-2); }
+  code { font-family: var(--mono); font-size: .9em; background: var(--paper-2); padding: 1px 6px; border: 1px solid rgba(0,0,0,.15); }
+
+  /* how it works: three pixel steps along a path */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; position: relative; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .step { padding: 24px; }
+  .step .n { font: 700 46px/1 var(--pixel); display: block; margin-bottom: 10px; }
+  .step h3 { font: 800 24px var(--display); margin: 0 0 6px; }
+  .step p { margin: 0; color: var(--ink-2); }
+  .step:nth-child(1) { background: #fff3d6; }
+  .step:nth-child(2) { background: #e5ecff; transform: translateY(18px); }
+  .step:nth-child(3) { background: #dff4e8; transform: translateY(36px); }
+  @media (max-width: 860px) { .step:nth-child(n) { transform: none; } }
+
+  /* the tour: alternating windows with scribbles */
+  .dark { background: var(--night); color: #f4f1ea; border-top: var(--line); border-bottom: var(--line); }
+  .dark .sub { color: #c9c6e3; }
+  .dark .kicker { color: var(--sun); }
+  .tour { display: grid; gap: 96px; }
+  .feature { display: grid; grid-template-columns: .8fr 1.4fr; gap: 48px; align-items: center; }
+  .feature.flip { grid-template-columns: 1.4fr .8fr; }
+  .feature.flip .copy-col { order: 2; }
+  @media (max-width: 960px) { .feature, .feature.flip { grid-template-columns: 1fr; } .feature.flip .copy-col { order: 0; } }
+  .feature h3 { font: 800 34px/1.05 var(--display); margin: 0 0 12px; letter-spacing: -0.02em; }
+  .feature p { color: #d9d6ee; margin: 0 0 14px; }
+  .feature ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
+  .feature li { padding-left: 22px; position: relative; color: #e8e5f7; }
+  .feature li::before { content: ""; position: absolute; left: 0; top: .5em; width: 10px; height: 10px; background: var(--sun); border: 2px solid var(--ink); }
+  .dark .win { box-shadow: 6px 6px 0 #000; }
+  .dark code { color: var(--ink); background: #f4f1ea; border-color: transparent; }
+  .shot { transition: transform .15s; }
+  .shot:hover { transform: rotate(0deg) scale(1.01); }
+  .tag { display: inline-block; font: 700 12px var(--pixel); padding: 2px 8px; border: 2px solid var(--ink); margin-bottom: 14px; color: var(--ink); }
+
+  /* status chips, so the page speaks the app's colour language */
+  .cells { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+  .cells span { font: 700 13px var(--display); color: #fff; padding: 6px 12px; border: 2px solid var(--ink); }
+
+  /* FAQ as a README.txt window */
+  .faq { columns: 2 340px; column-gap: 36px; }
+  .faq details { break-inside: avoid; margin: 0 0 16px; border: var(--line); background: #fff; box-shadow: var(--shadow-sm); }
+  .faq summary { cursor: pointer; list-style: none; padding: 14px 16px; font: 800 18px var(--display); display: flex; gap: 10px; }
+  .faq summary::before { content: "▸"; font-family: var(--pixel); }
+  .faq details[open] summary::before { content: "▾"; }
+  .faq details p { margin: 0; padding: 0 16px 16px 38px; color: var(--ink-2); }
+
+  footer { border-top: var(--line); padding: 34px 24px 120px; position: relative; overflow: hidden; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; font: 700 15px var(--pixel); }
+  footer .walker { bottom: 18px; animation-duration: 30s; animation-delay: -12s; }
+</style>
+</head>
+<body>
+
+<header class="menubar">
+  <a class="brand" href="#top"><span aria-hidden="true">🐝</span> Timu</a>
+  <nav aria-label="Sections">
+    <a href="#install">Install</a>
+    <a href="#how">How it works</a>
+    <a href="#tour">Tour</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <span class="spacer"></span>
+  <span class="clock" id="clock" aria-hidden="true"></span>
+  <a class="gh" href="https://github.com/gehadshaat/Timu">GitHub ↗</a>
+</header>
+
+<main id="top">
+  <div class="hero floor">
+    <div class="hero-inner">
+      <div>
+        <span class="eyebrow">FOR PEOPLE WITH TOO MANY CLAUDE TABS</span>
+        <h1>Your Claude sessions, run like a <span class="mark">small&nbsp;company.</span></h1>
+        <p class="lede">Timu files every Claude Code and claude.ai session under a teammate, a project and a goal — then shows you the few things that actually need you.</p>
+        <div class="cta">
+          <a class="btn" href="#install">Install in one minute →</a>
+          <a class="btn ghost" href="#tour">Take the tour</a>
+        </div>
+        <div class="stickers" aria-label="Facts">
+          <span class="sticker">runs on your machine</span>
+          <span class="sticker">one SQLite file</span>
+          <span class="sticker">no tokens to paste</span>
+          <span class="sticker">Claude can drive it (MCP)</span>
+        </div>
+      </div>
+      <div class="win tilt-r">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">office.map</span><span class="ctl">WASD to walk</span></div>
+        <img src="images/office.png" alt="Timu's office: one walkable map, a room per project, teammates at their desks; the ones waiting on you have a red ! over their heads" width="1440" height="900">
+      </div>
+    </div>
+    <div class="walker" aria-hidden="true">
+      <span class="bubble">3 things need you!</span>
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect x="6" y="1" width="1" height="2" fill="#1d1a16"/><rect x="9" y="1" width="1" height="2" fill="#1d1a16"/>
+        <rect x="4" y="4" width="3" height="3" fill="#cfe8ff"/><rect x="10" y="4" width="3" height="3" fill="#cfe8ff"/>
+        <rect x="3" y="3" width="1" height="4" fill="#1d1a16"/><rect x="13" y="3" width="1" height="4" fill="#1d1a16"/>
+        <rect x="5" y="6" width="7" height="7" fill="#f6b23b"/>
+        <rect x="5" y="8" width="7" height="1" fill="#1d1a16"/><rect x="5" y="11" width="7" height="1" fill="#1d1a16"/>
+        <rect x="4" y="7" width="1" height="5" fill="#1d1a16"/><rect x="12" y="7" width="1" height="5" fill="#1d1a16"/>
+        <rect x="5" y="13" width="7" height="1" fill="#1d1a16"/><rect x="5" y="5" width="7" height="1" fill="#1d1a16"/>
+        <rect x="7" y="6" width="1" height="1" fill="#1d1a16"/><rect x="10" y="6" width="1" height="1" fill="#1d1a16"/>
+        <rect x="6" y="14" width="1" height="2" fill="#1d1a16"/><rect x="10" y="14" width="1" height="2" fill="#1d1a16"/>
+      </svg>
+    </div>
+  </div>
+
+  <section id="install">
+    <div class="wrap install">
+      <div>
+        <span class="kicker">INSTALL · THERE IS ONLY ONE WAY</span>
+        <h2>Four commands. Then open your browser.</h2>
+        <p class="sub">No database server, no Docker, no cloud account. Timu keeps everything in one SQLite file on your machine.</p>
+        <div class="win term">
+          <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">~/ — bash</span><button class="copy" type="button" id="copy">copy</button></div>
+<pre id="cmds"><span class="p">$ </span>git clone https://github.com/gehadshaat/Timu.git
+<span class="p">$ </span>cd Timu
+<span class="p">$ </span>npm run setup   <span class="c"># installs + writes .env.local</span>
+<span class="p">$ </span>npm run dev     <span class="c"># → http://localhost:3100</span></pre>
+        </div>
+      </div>
+      <ul class="need" aria-label="What you need">
+        <li><span class="px">22</span><div><b>Node 22.16 or newer</b><p>For its built-in SQLite. Check with <code>node -v</code>.</p></div></li>
+        <li><span class="px">✳</span><div><b>Claude Code, signed in</b><p>Timu borrows its login to pull your cloud sessions and routines, and reads its local transcripts. Nothing to copy or paste — and it stays signed in as Claude Code refreshes.</p></div></li>
+        <li><span class="px">+</span><div><b>Optional: an Anthropic API key</b><p><code>npm run setup</code> asks once. With it, Claude files sessions and judges what really needs you; without it, Timu uses rules.</p></div></li>
+        <li><span class="px">2</span><div><b>Two Claude accounts?</b><p>Sign in with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu finds it and files both into the same companies.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="how" class="floor" style="border-top: var(--line); border-bottom: var(--line);">
+    <div class="wrap">
+      <span class="kicker">YOUR FIRST FIVE MINUTES</span>
+      <h2>Import. Hire. Clear.</h2>
+      <p class="sub">The first visit opens a three-step setup. Nothing is saved until you press <b>Hire the team 🎉</b>.</p>
+      <div class="steps">
+        <div class="win step"><span class="n">01</span><h3>Import sessions</h3><p>Local Claude Code transcripts and your claude.ai/code sessions come in automatically. claude.ai chats via an export or the Chrome extension.</p></div>
+        <div class="win step"><span class="n">02</span><h3>Build the team</h3><p>Companies, projects, teams and cartoon teammates are proposed for you, each owning a stream of sessions. Rename anyone, drop what you don't want.</p></div>
+        <div class="win step"><span class="n">03</span><h3>Clear what needs you</h3><p>Click a red <b>Needs you</b> cell: done, not needed (it goes quiet until there's news) or snooze. Everything has Undo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tour" class="dark">
+    <div class="wrap">
+      <span class="kicker">THE TOUR</span>
+      <h2>Every page is the same board.</h2>
+      <p class="sub">Coloured groups, one row per thing, status cells you click to change — from a whole company down to one goal.</p>
+      <div class="cells" aria-label="Statuses">
+        <span style="background:#e2445c">Needs you</span><span style="background:#fdab3d">Working on it</span><span style="background:#a25ddc">Review</span><span style="background:#bb3354">Stuck</span><span style="background:#00c875">Done</span><span style="background:#c4c4c4">Idle</span>
+      </div>
+
+      <div class="tour" style="margin-top: 72px;">
+        <div class="feature">
+          <div class="copy-col">
+            <span class="tag" style="background:var(--sun)">PROJECT BOARDS</span>
+            <h3>Goals are groups. Work is rows.</h3>
+            <p>Milestones, to-dos and the Claude sessions working on a goal, side by side, with owner, status, due date and priority.</p>
+            <ul><li>Tick, reassign, reschedule in place</li><li><b>Open ↗</b> jumps straight into the session</li><li>Set any session to <b>Needs me</b>, <b>Done</b> or <b>Idle</b></li></ul>
+          </div>
+          <div style="position:relative">
+            <div class="win shot tilt-r"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Sunbeam Web — board</span><span class="ctl">⌘K</span></div><img src="images/project-board.png" alt="A project board with goals as coloured groups" loading="lazy" width="1440" height="900"></div>
+            <div class="note" style="right:-8px; top:-38px; transform:rotate(4deg)">click a status to change it
+              <svg width="60" height="34" viewBox="0 0 60 34" fill="none" stroke="#f2542d" stroke-width="3" stroke-linecap="round"><path d="M50 2 C 40 22, 22 26, 6 30"/><path d="M6 30 l9 -9 M6 30 l12 2"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature flip">
+          <div class="copy-col">
+            <span class="tag" style="background:#ff8a8a">NEEDS YOU</span>
+            <h3>One list of everything waiting on you.</h3>
+            <p>Grouped by project, company or kind. A quick judge filters out the asks that never needed you, and learns your rules.</p>
+            <ul><li>Clear one, or select fifty and clear them together</li><li>Keyboard: <code>j</code> <code>k</code> <code>e</code> <code>n</code> <code>s</code></li></ul>
+          </div>
+          <div style="position:relative">
+            <div class="win shot tilt-l"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Needs you (7)</span><span class="ctl">j / k</span></div><img src="images/needs-you.png" alt="The Needs you board, grouped by project" loading="lazy" width="1440" height="900"></div>
+            <div class="note" style="left:-14px; bottom:-30px; transform:rotate(-5deg)">goes quiet until there's news
+            </div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="copy-col">
+            <span class="tag" style="background:#9ee6bf">GOALS</span>
+            <h3>Visit a goal from anywhere. Mark it done.</h3>
+            <p>Company boards list every goal; tick one to mark it achieved, or open its sessions from the ⚡ column.</p>
+          </div>
+          <div class="win shot tilt-r"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Rank top 3 for 'kids lunchbox'</span><span class="ctl">goal</span></div><img src="images/goal.png" alt="A goal page with its milestones, sessions and a Mark achieved button" loading="lazy" width="1440" height="900"></div>
+        </div>
+
+        <div class="feature flip">
+          <div class="copy-col">
+            <span class="tag" style="background:#b9d1ff">SCHEDULED</span>
+            <h3>Your routines, in plain words.</h3>
+            <p>Claude Code routines and the check-ins your sessions set for themselves: "Daily 9:00 · New York", next run, last result, and who it belongs to.</p>
+          </div>
+          <div class="win shot tilt-l"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Scheduled</span><span class="ctl">cron → words</span></div><img src="images/scheduled.png" alt="The Scheduled board of routines and check-ins" loading="lazy" width="1440" height="900"></div>
+        </div>
+
+        <div class="feature">
+          <div class="copy-col">
+            <span class="tag" style="background:#d9c2ff">MY TO-DOS</span>
+            <h3>Overdue, today, this week.</h3>
+            <p>Quick-add speaks shorthand: <code>Write FAQ @Maya #sunbeam-web !high due:fri</code>. Paste a list to add twenty at once.</p>
+          </div>
+          <div class="win shot tilt-r"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">My to-dos</span><span class="ctl">due:fri</span></div><img src="images/todos.png" alt="My to-dos grouped by when they're due" loading="lazy" width="1440" height="900"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <span class="kicker">README.TXT</span>
+      <h2>Questions people ask</h2>
+      <div class="faq" style="margin-top: 36px;">
+        <details open><summary>Where does my data go?</summary><p>It stays on your machine, in <code>data/timu.db</code>. Timu talks to Claude to read your own sessions and routines; to Anthropic only if you give it an API key (for filing and triage); and to TypeSafe only if you set <code>TYPESAFE_API_KEY</code>, which receives a clipped summary of each session it judges.</p></details>
+        <details><summary>Do I have to paste a token?</summary><p>No. Timu re-reads the login Claude Code keeps on your machine on every sync. If it expires, Settings says "run <code>claude</code>" and the next sync picks it up. (On macOS, where the login lives in the Keychain, set <code>CLAUDE_SESSIONS_TOKEN</code> instead.)</p></details>
+        <details><summary>Can Claude run it for me?</summary><p>Yes — Timu is an MCP server. Add it with the command in <b>Settings → Let Claude run Timu</b>, then ask "file my unfiled sessions" or "what needs me today?". Bulk changes return an undo id.</p></details>
+        <details><summary>I have two Claude accounts.</summary><p>Sign in to the second with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu syncs both, each with its own login, into the same companies, projects and goals.</p></details>
+        <details><summary>What does it cost?</summary><p>Running Timu costs nothing beyond your machine. If you add an API key, filing and triage call Claude and are billed to your Anthropic account; without one, Timu sticks to rules.</p></details>
+        <details><summary>Is the office a game?</summary><p>A little. It's one walkable map — WASD, click to walk, <b>E</b> to talk — where anyone waiting on you waves a red <b>!</b>. Talking to them opens their session or clears their ask.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="floor">
+  <div class="wrap">
+    <span>🐝 Timu — made for Claude power users</span>
+    <span><a href="https://github.com/gehadshaat/Timu">github.com/gehadshaat/Timu</a></span>
+  </div>
+  <div class="walker" aria-hidden="true">
+    <span class="bubble">shipped ✓</span>
+    <svg viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="6" y="1" width="1" height="2" fill="#1d1a16"/><rect x="9" y="1" width="1" height="2" fill="#1d1a16"/>
+      <rect x="4" y="4" width="3" height="3" fill="#cfe8ff"/><rect x="10" y="4" width="3" height="3" fill="#cfe8ff"/>
+      <rect x="3" y="3" width="1" height="4" fill="#1d1a16"/><rect x="13" y="3" width="1" height="4" fill="#1d1a16"/>
+      <rect x="5" y="6" width="7" height="7" fill="#1fae6b"/>
+      <rect x="5" y="8" width="7" height="1" fill="#1d1a16"/><rect x="5" y="11" width="7" height="1" fill="#1d1a16"/>
+      <rect x="4" y="7" width="1" height="5" fill="#1d1a16"/><rect x="12" y="7" width="1" height="5" fill="#1d1a16"/>
+      <rect x="5" y="13" width="7" height="1" fill="#1d1a16"/><rect x="5" y="5" width="7" height="1" fill="#1d1a16"/>
+      <rect x="7" y="6" width="1" height="1" fill="#1d1a16"/><rect x="10" y="6" width="1" height="1" fill="#1d1a16"/>
+      <rect x="6" y="14" width="1" height="2" fill="#1d1a16"/><rect x="10" y="14" width="1" height="2" fill="#1d1a16"/>
+    </svg>
+  </div>
+</footer>
+
+<script>
+  // Menubar clock, like a desktop.
+  const clock = document.getElementById("clock");
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); };
+  tick(); setInterval(tick, 30_000);
+  // Copy the install commands without the "$ " prompts or comments.
+  document.getElementById("copy").addEventListener("click", async (e) => {
+    const text = document.getElementById("cmds").innerText.split("\n").map((l) => l.replace(/^\$\s*/, "").replace(/\s+#.*$/, "")).join("\n");
+    try { await navigator.clipboard.writeText(text); e.target.textContent = "copied ✓"; } catch { e.target.textContent = "select + copy"; }
+    setTimeout(() => (e.target.textContent = "copy"), 1600);
+  });
+</script>
+</body>
+</html>

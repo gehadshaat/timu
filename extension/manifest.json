@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Timu for claude.ai",
+  "version": "0.1.0",
+  "description": "Syncs your claude.ai chats into your Timu dashboard.",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": ["https://claude.ai/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Timu" },
+  "icons": { "128": "icon.png" }
+}
