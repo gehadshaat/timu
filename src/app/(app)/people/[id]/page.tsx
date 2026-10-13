@@ -1,3 +1,5 @@
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import { notFound } from "next/navigation";
 import { Character } from "@/components/Character";
 import { Crumbs } from "@/components/Crumbs";
@@ -78,6 +80,16 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           goals={Object.fromEntries(org.goals.map((g) => [g.id, g.title]))}
         />
       </section>
+
+      {(() => {
+        const artifacts = getArtifacts(org, { agentId: agent.id });
+        return artifacts.length ? (
+          <section id="artifacts" className="scroll-mt-6 space-y-2">
+            <h2 className="font-display text-xl font-bold">🖼️ Artifacts from {agent.name}&apos;s sessions <span className="text-sm font-semibold text-zinc-400">· {artifacts.length}</span></h2>
+            <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped={true} />
+          </section>
+        ) : null;
+      })()}
 
       <details className="group rounded-2xl bg-white/60 p-3 ring-1 ring-black/5">
         <summary className="cursor-pointer list-none font-display text-lg font-bold">

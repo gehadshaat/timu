@@ -158,6 +158,8 @@ export interface SessionRow {
   status_override: SessionStatus | null;
   /** The Claude account it came from ("claude", "claude-work"…); accounts share one org. */
   account?: string | null;
+  /** How many artifacts it made (list queries only). */
+  artifact_count?: number;
 }
 
 export interface TaskRow {

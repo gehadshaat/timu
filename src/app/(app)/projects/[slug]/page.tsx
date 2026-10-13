@@ -141,7 +141,7 @@ export default async function ProjectPage({
             asks={Object.fromEntries(asks.map((a) => [a.session.id, a.task.id]))}
           />
           {artifacts.length ? (
-            <section className="space-y-2">
+            <section id="artifacts" className="scroll-mt-6 space-y-2">
               <h2 className="font-display text-lg font-bold">🖼️ Artifacts</h2>
               <ArtifactsBoard items={artifacts} options={options} grouped={false} />
             </section>

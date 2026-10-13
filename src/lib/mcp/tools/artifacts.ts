@@ -4,8 +4,9 @@ import { z } from "zod";
 import { describeArtifacts, getArtifacts, importArtifacts, moveArtifact } from "../../artifacts";
 import { getOrg } from "../../queries";
 import { artifactIdFromUrl } from "../../sources/artifacts";
-import { resolveProject } from "../resolve";
-import { defineTool, PROJECT_REF, ref } from "../tool";
+import { findSessions } from "../lookup";
+import { resolveCompany, resolveGoal, resolveProject, resolveTeammate } from "../resolve";
+import { COMPANY_REF, defineTool, PROJECT_REF, ref, SESSION_REF, TEAMMATE_REF } from "../tool";
 
 export function registerArtifactTools(server: McpServer): void {
   defineTool(
@@ -27,12 +28,25 @@ export function registerArtifactTools(server: McpServer): void {
     {
       title: "Artifacts",
       kind: "read",
-      description: "Your Claude artifacts in Timu, newest first, each with its link, the project and company it's filed under (and how: session, title or you), and the session that links to it. Filter by project.",
-      input: z.object({ project: ref(PROJECT_REF).optional() }),
+      description:
+        "Your Claude artifacts in Timu, newest first, each with its link, the project and company it's filed under (and how: session, title or you), and the session that made it. Filter by company, project, goal (made by its sessions), teammate (made by their sessions) or session.",
+      input: z.object({
+        company: ref(COMPANY_REF).optional(),
+        project: ref(PROJECT_REF).optional(),
+        goal: ref("Goal id or exact title; write 'Project / Goal' when the title repeats").optional(),
+        teammate: ref(TEAMMATE_REF).optional(),
+        session: ref(SESSION_REF).optional(),
+      }),
     },
-    async ({ project }) => {
+    async ({ company, project, goal, teammate, session }) => {
       const org = await getOrg();
-      const views = getArtifacts(org, { projectId: project ? resolveProject(org, project).id : undefined });
+      const views = getArtifacts(org, {
+        companyId: company ? resolveCompany(org, company).id : undefined,
+        projectId: project ? resolveProject(org, project).id : undefined,
+        goalId: goal ? resolveGoal(org, goal).id : undefined,
+        agentId: teammate ? resolveTeammate(org, teammate).id : undefined,
+        sessionId: session ? (await findSessions([session]))[0].id : undefined,
+      });
       return {
         count: views.length,
         artifacts: views.map((a) => ({

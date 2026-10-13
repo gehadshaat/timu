@@ -119,4 +119,29 @@ describe("filing artifacts", () => {
     expect(views.map((v) => v.id).sort()).toEqual(["GiftGuide99", "SeoAudit123"]);
     expect(views.find((v) => v.id === "GiftGuide99")?.session?.title).toBe("Holiday campaign");
   });
+
+  it("finds artifacts at every level: company, project, goal, team, teammate, session", () => {
+    const [company] = insert<{ id: string }>("companies", { slug: "duckworks", name: "Duckworks" });
+    const [project] = insert<{ id: string }>("projects", { slug: "procurement-app", name: "Procurement App", company_id: company.id });
+    const [team] = insert<{ id: string }>("teams", { project_id: project.id, name: "Product Engineering" });
+    const [agent] = insert<{ id: string }>("agents", { team_id: team.id, name: "Sam", role: "Backend Engineer" });
+    const [goal] = insert<{ id: string }>("goals", { project_id: project.id, title: "Win 5 tenders" });
+    const [session] = insert<{ id: string }>("sessions", {
+      source: "local", external_id: "s-bid", title: "Bid pricing calculator", project_id: project.id, team_id: team.id, agent_id: agent.id, goal_id: goal.id,
+    });
+    importArtifacts("- (mine) Bid calculator — https://claude.ai/artifact/BidCalc001 — updated 2026-10-10");
+    linkSessionArtifacts([{ sessionId: session.id, artifacts: [{ id: "BidCalc001", url: "https://claude.ai/artifact/BidCalc001" }] }]);
+
+    const org = { companies: [{ id: company.id, name: "Duckworks", emoji: "🦆" }], projects: [{ id: project.id, name: "Procurement App", emoji: "🦆", slug: "procurement-app", company_id: company.id }] } as unknown as Parameters<typeof getArtifacts>[0];
+    const ids = (f: Parameters<typeof getArtifacts>[1]) => getArtifacts(org, f).map((a) => a.id);
+    // Session levels: just the one this session made.
+    for (const f of [{ goalId: goal.id }, { teamId: team.id }, { agentId: agent.id }, { sessionId: session.id }]) {
+      expect(ids(f)).toEqual(["BidCalc001"]);
+    }
+    // Company and project also hold "Duckworks bid calculator" from the earlier list, now that a
+    // Duckworks company exists to match its title.
+    expect(ids({ companyId: company.id }).sort()).toEqual(["0b5e7c2a-1111-4c3d-9e8f-aaaaaaaaaaaa", "BidCalc001"]);
+    expect(ids({ projectId: project.id }).sort()).toEqual(["0b5e7c2a-1111-4c3d-9e8f-aaaaaaaaaaaa", "BidCalc001"]);
+    expect(ids({ goalId: "some-other-goal" })).toEqual([]);
+  });
 });

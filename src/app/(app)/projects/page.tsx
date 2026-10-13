@@ -20,6 +20,7 @@ export default async function ProjectsPage() {
       progress: g.progress,
       items: g.milestones.length + g.sessions.length + g.todos.length,
       sessions: g.sessions.map((x) => ({ id: x.id, title: x.title, status: x.status_override ?? x.status, url: x.url, resume: resumeFor(x) })),
+      artifacts: g.sessions.reduce((n, x) => n + (x.artifact_count ?? 0), 0),
     })),
   }));
 

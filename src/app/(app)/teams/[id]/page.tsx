@@ -1,3 +1,5 @@
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PeopleWorkBoard } from "@/components/board/PeopleBoard";
@@ -103,6 +105,15 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
         <>
           <QuickAdd options={options} projectId={project.id} compact placeholder="Add a to-do for the team… (@who due:fri)" />
           <PeopleWorkBoard people={groups} options={options} asks={asks} goals={goalTitles} />
+          {(() => {
+        const artifacts = getArtifacts(org, { teamId: team.id });
+        return artifacts.length ? (
+          <section id="artifacts" className="scroll-mt-6 space-y-2">
+            <h2 className="font-display text-xl font-bold">🖼️ Artifacts from this team <span className="text-sm font-semibold text-zinc-400">· {artifacts.length}</span></h2>
+            <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped={true} />
+          </section>
+        ) : null;
+      })()}
           {sessions.some((s) => !s.agent_id) ? (
             <details className="group rounded-2xl bg-white/60 p-3 ring-1 ring-black/5">
               <summary className="cursor-pointer list-none font-display text-lg font-bold">

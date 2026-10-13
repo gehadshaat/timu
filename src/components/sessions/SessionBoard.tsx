@@ -11,6 +11,7 @@ import type { SessionLite } from "@/lib/session-lite";
 import { Character } from "../Character";
 import { SourceBadge } from "../SourceBadge";
 import { OpenSession } from "../asks/AskActions";
+import { ArtifactChip } from "../artifacts/ArtifactChip";
 import { SessionStatusCell } from "../board/SessionStatusCell";
 import { groupColor } from "../board/palette";
 import { BAR_POPOVER, BarButton, BulkBar, SelectBox } from "../ui/BulkBar";
@@ -126,7 +127,8 @@ export function SessionBoard({
               <Link href={`/sessions/${s.id}`} className="shrink-0 text-xs font-semibold text-orange-700 hover:underline">
                 details →
               </Link>
-              <span className="ml-auto shrink-0">
+              <span className="ml-auto flex shrink-0 items-center gap-1">
+                <ArtifactChip count={s.artifact_count} href={`/sessions/${s.id}#artifacts`} />
                 <OpenSession url={s.url} resume={resumeFor(s)} small />
               </span>
               {commentCounts[s.id] ? (

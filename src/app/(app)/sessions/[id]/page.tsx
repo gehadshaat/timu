@@ -176,7 +176,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       </section>
 
       {artifacts.length ? (
-        <section className="space-y-2">
+        <section id="artifacts" className="scroll-mt-6 space-y-2">
           <h2 className="font-display text-xl font-bold">🖼️ Artifacts from this session</h2>
           <ArtifactsBoard items={artifacts} options={options} grouped={false} />
         </section>

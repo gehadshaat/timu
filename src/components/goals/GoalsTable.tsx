@@ -23,6 +23,7 @@ import type { GoalView, OrgOptions, TodoItem } from "@/lib/queries";
 import type { GoalRow, MilestoneRow, Priority, SessionRow } from "@/lib/types";
 import { Character } from "../Character";
 import { OpenSession } from "../asks/AskActions";
+import { ArtifactChip } from "../artifacts/ArtifactChip";
 import { SessionStatusCell } from "../board/SessionStatusCell";
 import { GOAL_STATUS, GROUP_COLORS, PRIORITY } from "../board/palette";
 import { CommentThread } from "../comments/CommentThread";
@@ -331,6 +332,7 @@ export function SessionRowView({
             </Link>
           ) : null}
         </div>
+        <ArtifactChip count={s.artifact_count} href={`/sessions/${s.id}#artifacts`} />
         <span className="shrink-0">
           <OpenSession url={s.url} resume={resumeFor(s)} small />
         </span>
@@ -507,6 +509,7 @@ function GoalGroup({
               Open ↗
             </Link>
           )}
+          <ArtifactChip count={sessions.reduce((n, x) => n + (x.artifact_count ?? 0), 0)} href={`${goalHref(goal.id)}#artifacts`} />
           <span className="text-xs text-zinc-400">
             {count} item{count === 1 ? "" : "s"}
             {team ? ` · ${team.name}` : ""}

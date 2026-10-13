@@ -1,3 +1,5 @@
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Character } from "@/components/Character";
@@ -11,7 +13,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { Renameable } from "@/components/ui/Renameable";
 import { getComments } from "@/lib/comments";
 import { personHref, projectHref, resumeFor, teamHref } from "@/lib/links";
-import { getCompanyBySlug, getGoals, getInbox, getOffice, getOrg } from "@/lib/queries";
+import { getCompanyBySlug, getGoals, getInbox, getOffice, getOrg, orgOptions } from "@/lib/queries";
 
 const VIEWS = [
   { key: "board", label: "Board", icon: "📋" },
@@ -51,6 +53,7 @@ export default async function CompanyPage({
       progress: g.progress,
       items: g.milestones.length + g.sessions.length + g.todos.length,
       sessions: g.sessions.map((x) => ({ id: x.id, title: x.title, status: x.status_override ?? x.status, url: x.url, resume: resumeFor(x) })),
+      artifacts: g.sessions.reduce((n, x) => n + (x.artifact_count ?? 0), 0),
     })),
   }));
   const tabHref = (key: View) => (key === "board" ? `/companies/${company.slug}` : `/companies/${company.slug}?view=${key}`);
@@ -108,6 +111,15 @@ export default async function CompanyPage({
       {view === "board" ? (
         <>
           <GoalsOverview groups={groups} />
+          {(() => {
+        const artifacts = getArtifacts(org, { companyId: company.id });
+        return artifacts.length ? (
+          <section id="artifacts" className="scroll-mt-6 space-y-2">
+            <h2 className="font-display text-xl font-bold">🖼️ Artifacts <span className="text-sm font-semibold text-zinc-400">· {artifacts.length}</span></h2>
+            <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped={true} />
+          </section>
+        ) : null;
+      })()}
           <div className="flex justify-end">
             <EntityDialog kind="project" initial={{ company_id: company.id, emoji: "📁" }} choices={org.companies.map((c) => ({ id: c.id, label: `${c.emoji} ${c.name}` }))} navigate />
           </div>

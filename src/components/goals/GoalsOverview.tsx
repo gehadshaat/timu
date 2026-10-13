@@ -11,6 +11,7 @@ import { parseLines } from "@/lib/quickadd";
 import type { GoalRow } from "@/lib/types";
 import { GOAL_STATUS, GROUP_COLORS, SESSION_STATUS } from "../board/palette";
 import { OpenSession } from "../asks/AskActions";
+import { ArtifactChip } from "../artifacts/ArtifactChip";
 import { MenuItem, Popover } from "../ui/Popover";
 import { useBulkRunner } from "../ui/useBulk";
 
@@ -28,6 +29,8 @@ export interface OverviewGoal {
   items: number;
   /** The sessions working on it, so they can be opened right from the goal's row. */
   sessions: { id: string; title: string; status: string; url: string | null; resume: string | null }[];
+  /** Artifacts its sessions made. */
+  artifacts?: number;
 }
 
 export interface OverviewGroup {
@@ -38,7 +41,7 @@ export interface OverviewGroup {
 
 
 /** Goal · Sessions · Team · Status · Due · Progress (team, due and progress from md up). */
-const COLS = "grid grid-cols-[minmax(0,1fr)_4rem_6.5rem] md:grid-cols-[minmax(0,1fr)_5rem_8rem_7.5rem_6rem_8rem]";
+const COLS = "grid grid-cols-[minmax(0,1fr)_5.5rem_6.5rem] md:grid-cols-[minmax(0,1fr)_7rem_8rem_7.5rem_6rem_8rem]";
 const WIDE = "hidden md:flex";
 
 function Cell({ children, className }: { children?: React.ReactNode; className?: string }) {
@@ -132,8 +135,9 @@ function GoalLine({ g, color }: { g: OverviewGoal; color: string }) {
           {goal.title}
         </Link>
       </div>
-      <Cell>
+      <Cell className="gap-1">
         <GoalSessions sessions={g.sessions} />
+        <ArtifactChip count={g.artifacts} href={`${goalHref(goal.id)}#artifacts`} />
       </Cell>
       <Cell className={clsx(WIDE, "px-2 text-xs text-zinc-500")}>
         <span className="truncate">{g.team ?? "Whole project"}</span>

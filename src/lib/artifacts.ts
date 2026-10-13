@@ -141,14 +141,36 @@ export interface ArtifactView {
  * Artifacts, newest first, with the project, company and session they're filed under. Files them
  * first, so one whose session was just moved or filed by the organiser follows it.
  */
-export function getArtifacts(org: Org, filter: { projectId?: string; sessionId?: string } = {}): ArtifactView[] {
+export interface ArtifactFilter {
+  companyId?: string;
+  projectId?: string;
+  /** Made by a session that works on this goal. */
+  goalId?: string;
+  /** Made by a session this teammate owns. */
+  agentId?: string;
+  /** Made by a session on this team. */
+  teamId?: string;
+  sessionId?: string;
+}
+
+export function getArtifacts(org: Org, filter: ArtifactFilter = {}): ArtifactView[] {
   fileArtifacts();
-  const rows = all<ArtifactRow & { s_title: string | null; s_url: string | null; s_source: SessionSource | null }>(
-    `select a.*, s.title as s_title, s.url as s_url, s.source as s_source from artifacts a left join sessions s on s.id = a.session_id
+  const rows = all<ArtifactRow & { s_title: string | null; s_url: string | null; s_source: SessionSource | null; s_goal: string | null; s_agent: string | null; s_team: string | null }>(
+    `select a.*, s.title as s_title, s.url as s_url, s.source as s_source, s.goal_id as s_goal, s.agent_id as s_agent, s.team_id as s_team
+     from artifacts a left join sessions s on s.id = a.session_id
      order by coalesce(a.updated_at, a.imported_at) desc`,
   );
+  const companyOf = (a: ArtifactRow) => a.company_id ?? org.projects.find((x) => x.id === a.project_id)?.company_id ?? null;
   return rows
-    .filter((a) => (!filter.projectId || a.project_id === filter.projectId) && (!filter.sessionId || a.session_id === filter.sessionId))
+    .filter(
+      (a) =>
+        (!filter.projectId || a.project_id === filter.projectId) &&
+        (!filter.companyId || companyOf(a) === filter.companyId) &&
+        (!filter.goalId || a.s_goal === filter.goalId) &&
+        (!filter.agentId || a.s_agent === filter.agentId) &&
+        (!filter.teamId || a.s_team === filter.teamId) &&
+        (!filter.sessionId || a.session_id === filter.sessionId),
+    )
     .map((a) => {
       const p = org.projects.find((x) => x.id === a.project_id) ?? null;
       const c = org.companies.find((x) => x.id === (a.company_id ?? p?.company_id)) ?? null;
@@ -164,4 +186,11 @@ export function getArtifacts(org: Org, filter: { projectId?: string; sessionId?:
         session: a.session_id && a.s_title ? { id: a.session_id, title: a.s_title, url: a.s_url, source: a.s_source! } : null,
       };
     });
+}
+
+/** How many artifacts each session made, for the 🖼️ chips on board rows. */
+export function artifactCountsBySession(): Record<string, number> {
+  return Object.fromEntries(
+    all<{ session_id: string; n: number }>("select session_id, count(*) as n from artifacts where session_id is not null group by session_id").map((r) => [r.session_id, r.n]),
+  );
 }
