@@ -4,14 +4,14 @@ import { SourcesPanel } from "@/components/SourcesPanel";
 import { SyncButton } from "@/components/SyncButton";
 import { TriageMemory } from "@/components/TriageMemory";
 import { getMemory, getStaleDays, triageEngine } from "@/lib/triage";
-import { hasClaudeKey } from "@/lib/classify/claude";
+import { hasClaude } from "@/lib/classify/claude";
 import { timeAgo } from "@/lib/format";
 import { getSourceStats } from "@/lib/queries";
 import { getSourceInfo } from "@/lib/source-info";
 
 export default async function SettingsPage() {
   const [info, stats, memory, staleDays] = await Promise.all([getSourceInfo(), getSourceStats(), getMemory(), getStaleDays()]);
-  const engine = { typesafe: "TypeSafe Jev", claude: "Claude Haiku 5.5", status: "the session's own status (add TYPESAFE_API_KEY or ANTHROPIC_API_KEY for a model)" }[triageEngine()];
+  const engine = { typesafe: "TypeSafe Jev", claude: "Claude Haiku 5.5, through the Claude CLI", status: "the session's own status (install the Claude CLI, or set TYPESAFE_API_KEY, for a model)" }[triageEngine()];
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -42,7 +42,7 @@ export default async function SettingsPage() {
           ))}
         </ul>
         <p className="text-sm text-zinc-500">
-          Organiser: {hasClaudeKey() ? "Claude (claude-opus-5-5)" : "rules only — set ANTHROPIC_API_KEY to let Claude build teams"}
+          Organiser: {hasClaude() ? "Claude (claude-opus-5-5), through the Claude CLI on your login" : "rules only — install Claude Code and sign in (`claude`) to let Claude build teams"}
         </p>
       </section>
 

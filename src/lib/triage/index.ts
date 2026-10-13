@@ -1,6 +1,6 @@
 import "server-only";
 import { getSetting, setSetting } from "../db";
-import { hasClaudeKey } from "../anthropic";
+import { hasClaude } from "../claude-cli";
 import type { Verdict } from "../types";
 import { claudeJudge } from "./claude";
 import { DEFAULT_MEMORY, MEMORY_KEY, type MemoryItem } from "./memory";
@@ -31,10 +31,10 @@ export type Engine = "typesafe" | "claude" | "status";
 export function triageEngine(): Engine {
   const forced = process.env.TIMU_TRIAGE_ENGINE as Engine | undefined;
   if (forced === "typesafe" && typesafeConfigured()) return "typesafe";
-  if (forced === "claude" && hasClaudeKey()) return "claude";
+  if (forced === "claude" && hasClaude()) return "claude";
   if (forced === "status") return "status";
   if (typesafeConfigured()) return "typesafe";
-  if (hasClaudeKey()) return "claude";
+  if (hasClaude()) return "claude";
   return "status";
 }
 

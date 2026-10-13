@@ -13,7 +13,7 @@ bottom is satisfied** — code, tests, MCP, docs, setup and the website move tog
 ## Commands
 
 ```bash
-npm run setup      # first run: installs deps, writes .env.local (tokens, optional Anthropic key). Safe to re-run.
+npm run setup      # first run: installs deps, writes .env.local (tokens), checks for the Claude CLI. Safe to re-run.
 npm run dev        # http://localhost:3100 (predev re-checks .env.local; never fails the server)
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint .
@@ -46,7 +46,11 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
    `.env.example` with a comment.
 4. **Accounts share one org.** Several Claude accounts (`src/lib/claude-accounts.ts`) are only a source tag
    (`account` column) — never split companies, projects or goals by account.
-5. **Commits** are authored with the GitHub noreply address (`git config user.email
+5. **Model calls go through the Claude CLI.** Anything that asks Claude (organiser, triage, a new judge) uses
+   `askClaude()` in `src/lib/claude-cli.ts` — `claude -p` with a Zod schema, on the user's own login, with
+   tools, MCP and settings off. No Anthropic SDK and no API key. Gate it on `hasClaude()` and keep a
+   rules-only fallback (`CLAUDE_CLI=off` forces it).
+6. **Commits** are authored with the GitHub noreply address (`git config user.email
    6731998+gehadshaat@users.noreply.github.com`). Branch per feature; PRs against `main`.
 
 ---
@@ -66,7 +70,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `src/lib/sources/*.ts` | One parser per source: `local` (transcripts), `cloud`, `claudeai`, `routines`, `artifacts`. Pure functions → easy to test. |
 | `src/lib/claude-accounts.ts`, `claude-auth.ts`, `claude-auth-store.ts` | Which Claude accounts exist, their login (borrowed from Claude Code, re-read every pull, falls back on 401), and which one worked last. |
 | `src/lib/routines.ts`, `src/lib/artifacts.ts` | Routines and artifacts: save, file under teammate/project, views for boards. |
-| `src/lib/classify/`, `src/lib/organize.ts` | The organiser: files sessions into the org (Claude when `ANTHROPIC_API_KEY` is set, else heuristics). |
+| `src/lib/classify/`, `src/lib/organize.ts` | The organiser: files sessions into the org (Claude through the `claude -p` CLI in `src/lib/claude-cli.ts`, else heuristics). |
 | `src/lib/triage/` | Does a session genuinely need the user? Rules → TypeSafe/Claude → status. |
 | `src/lib/office-map.ts` | Layout maths for the walkable office (tested). |
 | `src/lib/mcp/` | The MCP server: `server.ts` (instructions + registration), `tool.ts` (`defineTool`, refs), `resolve.ts` (id/slug/name lookup), `tools/*.ts`. |
@@ -158,7 +162,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
    ```bash
    TIMU_DB_PATH=/tmp/timu-demo/demo.db CLAUDE_ACCOUNTS=/tmp/timu-demo/no-account \
    CLAUDE_CREDENTIALS_PATH=/tmp/timu-demo/no-account/.credentials.json CLAUDE_CONFIG_PATH=/tmp/timu-demo/no-account/.claude.json \
-   CLAUDE_PROJECTS_DIR=/tmp/timu-demo/empty CLAUDE_SESSIONS_TOKEN= ANTHROPIC_API_KEY= TYPESAFE_API_KEY= TIMU_PASSWORD= \
+   CLAUDE_PROJECTS_DIR=/tmp/timu-demo/empty CLAUDE_SESSIONS_TOKEN= CLAUDE_CLI=off TYPESAFE_API_KEY= TIMU_PASSWORD= \
    npx next dev -p 3102
    ```
    (Stop other `next dev` servers in the same checkout first — they share `.next/`.)

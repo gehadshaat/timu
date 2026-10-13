@@ -300,7 +300,7 @@
       <ul class="need" aria-label="What you need">
         <li><span class="px">22</span><div><b>Node 22.16 or newer</b><p>For its built-in SQLite. Check with <code>node -v</code>.</p></div></li>
         <li><span class="px">✳</span><div><b>Claude Code, signed in</b><p>Timu borrows its login to pull your cloud sessions and routines, and reads its local transcripts. Nothing to copy or paste — and it stays signed in as Claude Code refreshes.</p></div></li>
-        <li><span class="px">+</span><div><b>Optional: an Anthropic API key</b><p><code>npm run setup</code> asks once. With it, Claude files sessions and judges what really needs you; without it, Timu uses rules.</p></div></li>
+        <li><span class="px">+</span><div><b>Claude Code, signed in</b><p>No API key. Timu asks Claude through <code>claude -p</code> on your own login to file sessions and judge what really needs you; without the CLI, Timu uses rules.</p></div></li>
         <li><span class="px">2</span><div><b>Two Claude accounts?</b><p>Sign in with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu finds it and files both into the same companies.</p></div></li>
       </ul>
     </div>
@@ -393,11 +393,11 @@
       <span class="kicker">README.TXT</span>
       <h2>Questions people ask</h2>
       <div class="faq" style="margin-top: 36px;">
-        <details open><summary>Where does my data go?</summary><p>It stays on your machine, in <code>data/timu.db</code>. Timu talks to Claude to read your own sessions and routines; to Anthropic only if you give it an API key (for filing and triage); and to TypeSafe only if you set <code>TYPESAFE_API_KEY</code>, which receives a clipped summary of each session it judges.</p></details>
+        <details open><summary>Where does my data go?</summary><p>It stays on your machine, in <code>data/timu.db</code>. Timu talks to Claude to read your own sessions and routines; to Claude through your own Claude Code CLI for filing and triage; and to TypeSafe only if you set <code>TYPESAFE_API_KEY</code>, which receives a clipped summary of each session it judges.</p></details>
         <details><summary>Do I have to paste a token?</summary><p>No. Timu re-reads the login Claude Code keeps on your machine on every sync. If it expires, Settings says "run <code>claude</code>" and the next sync picks it up. (On macOS, where the login lives in the Keychain, set <code>CLAUDE_SESSIONS_TOKEN</code> instead.)</p></details>
         <details><summary>Can Claude run it for me?</summary><p>Yes — Timu is an MCP server. Add it with the command in <b>Settings → Let Claude run Timu</b>, then ask "file my unfiled sessions" or "what needs me today?". Bulk changes return an undo id.</p></details>
         <details><summary>I have two Claude accounts.</summary><p>Sign in to the second with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu syncs both, each with its own login, into the same companies, projects and goals.</p></details>
-        <details><summary>What does it cost?</summary><p>Running Timu costs nothing beyond your machine. If you add an API key, filing and triage call Claude and are billed to your Anthropic account; without one, Timu sticks to rules.</p></details>
+        <details><summary>What does it cost?</summary><p>Running Timu costs nothing beyond your machine. Filing and triage run through your Claude Code login, so they count toward your Claude plan’s usage; without the CLI, Timu sticks to rules.</p></details>
         <details><summary>Is the office a game?</summary><p>A little. It's one walkable map — WASD, click to walk, <b>E</b> to talk — where anyone waiting on you waves a red <b>!</b>. Talking to them opens their session or clears their ask.</p></details>
       </div>
     </div>

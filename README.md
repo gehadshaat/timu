@@ -28,7 +28,7 @@ npm run setup     # installs everything and writes .env.local (safe to re-run)
 npm run dev       # open http://localhost:3100
 ```
 
-That's the only install. `npm run setup` asks for one optional thing, an Anthropic API key, which lets Claude file sessions and judge what needs you. Press Enter to skip it, and Timu uses rules instead.
+That's the only install. There's no API key to paste: Timu asks Claude through the Claude Code CLI (`claude -p`) on the login you already have, to file sessions and judge what needs you. Without the CLI, Timu uses rules instead.
 
 > **Signing in to Claude is automatic.** Timu borrows the login Claude Code already has (`~/.claude/.credentials.json`) and re-reads it on every sync, so there's no token to copy. If it ever expires, Settings tells you to run `claude`, and the next sync picks it up. More than one Claude account? Sign in with `CLAUDE_CONFIG_DIR=~/.claude-work claude`, and Timu syncs both into the same companies and projects.
 
@@ -36,7 +36,7 @@ That's the only install. `npm run setup` asks for one optional thing, an Anthrop
 
 1. **Open http://localhost:3100.** The first visit sends you to the setup wizard.
 2. **Import sessions.** The wizard reads your local Claude Code transcripts and your cloud sessions on claude.ai/code. claude.ai chats are optional: upload your data export, or use the Chrome extension in `extension/`.
-3. **Build the team, then review and hire.** Claude (or Timu's rules, with no API key) proposes companies, projects, teams and cartoon teammates, each owning a stream of sessions. Rename anyone and drop what you don't want; nothing is saved until you press **Hire the team 🎉**.
+3. **Build the team, then review and hire.** Claude (or Timu's rules, without the Claude CLI) proposes companies, projects, teams and cartoon teammates, each owning a stream of sessions. Rename anyone and drop what you don't want; nothing is saved until you press **Hire the team 🎉**.
 4. **Clear what needs you.** Home shows each company as a board. Click any red **Needs you** cell to mark it done, mark it not needed (it stays quiet until there's new activity) or snooze it. Every change has Undo.
 5. **Let Claude help (optional).** Add Timu as an MCP server, with the command shown in **Settings → Let Claude run Timu**. Then ask Claude things like "file my unfiled sessions" or "what needs me today?".
 
@@ -187,12 +187,12 @@ Notes:
 
 ## How organising works
 
-- **With `ANTHROPIC_API_KEY`:**
-  - Claude (`claude-opus-5-5`, structured outputs, effort `medium`) reads a compact digest of each session (title, repo, first prompt, last message, status) in batches of 60.
+- **With the Claude CLI** (Claude Code installed and signed in):
+  - Timu runs `claude -p` on your login — no API key. Each call is one turn with tools, MCP servers and settings off, nothing saved, and a JSON schema for the answer. It counts toward your Claude plan's usage like any other Claude Code request.
+  - Claude (`claude-opus-5-5`, effort `medium`) reads a compact digest of each session (title, repo, first prompt, last message, status) in batches of 60.
   - It proposes projects, teams, teammates with roles and props, and goals.
   - For each session it also judges whether you need to act (`respond`, `review`, `decide`, `unblock`) and writes a short ask.
-  - Server-side refusal fallbacks are on (`fallbacks: "default"`).
-- **Without a key:** a rules-based organiser groups sessions by repo owner and assigns teams and roles from keywords (SEO, ads, PCB, invoices, …).
+- **Without it** (or with `CLAUDE_CLI=off`): a rules-based organiser groups sessions by repo owner and assigns teams and roles from keywords (SEO, ads, PCB, invoices, …).
 - **Setup** produces a draft you review and edit before anything is saved.
 - **After setup**, **Sync sessions** imports new activity and files new or changed sessions into the existing org. New teammates are hired only when nothing fits. A task you marked handled stays closed until that session shows new activity.
 
@@ -202,6 +202,7 @@ Timu keeps its data in one SQLite file, so host it somewhere with a persistent d
 
 1. Deploy with `npm run build && npm start`, with `TIMU_DB_PATH` on the persistent volume. Set the same env vars, plus `TIMU_PASSWORD` to turn on the login gate.
 2. The hosted app can't read your disk, so run `TIMU_URL=https://your-timu… TIMU_INGEST_TOKEN=… npm run sync:local` (cron it if you like). Point the Chrome extension at the hosted URL.
+3. Filing and triage need the Claude CLI on the server. Install Claude Code there and sign in once (or set `CLAUDE_CLI` to its path); otherwise the hosted Timu uses rules.
 
 All data access is plain SQL in `src/lib` (through `src/lib/db.ts`), so moving to Postgres later means porting `db/schema.sql` and swapping the driver. Every table already has an `owner_id` column for when Timu becomes multi-user.
 

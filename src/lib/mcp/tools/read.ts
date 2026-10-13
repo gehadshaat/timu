@@ -1,7 +1,7 @@
 import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { hasClaudeKey } from "../../anthropic";
+import { hasClaude } from "../../claude-cli";
 import { PROP_KINDS } from "../../classify/schema";
 import { get, getSetting } from "../../db";
 import { digestSince, getDigest } from "../../digest";
@@ -308,7 +308,7 @@ export function registerReadTools(server: McpServer): void {
       ]);
       return {
         setup_complete: setup,
-        organiser: hasClaudeKey() ? "claude" : "rules",
+        organiser: hasClaude() ? "claude" : "rules",
         organize_job: job,
         cloud_pull_configured: !!cloudConfigFromEnv(),
         sources,
