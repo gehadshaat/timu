@@ -80,7 +80,7 @@ export function SetupWizard({
               <p className="text-sm text-white/70">
                 {claudeAvailable
                   ? "Claude will read them and propose projects, teams, teammates and goals. You review before anything is saved."
-                  : "No ANTHROPIC_API_KEY set — Timu will group sessions with simple rules (by repo and keywords). Add a key for smarter teams."}
+                  : "The Claude CLI isn't installed here — Timu will group sessions with simple rules (by repo and keywords). Install Claude Code and sign in for smarter teams."}
               </p>
               {job?.state === "error" ? <p className="mt-2 text-sm font-semibold text-rose-300">Last run failed: {job.error}</p> : null}
             </div>
@@ -167,7 +167,7 @@ function OrgEditor({ proposal, sessions, onDone }: { proposal: { id: string; eng
         <p className="text-sm text-emerald-900/80">
           {org.projects.length} projects · {org.projects.reduce((n, p) => n + p.teams.reduce((m, t) => m + t.members.length, 0), 0)} teammates ·{" "}
           {org.assignments.length} sessions filed · {needsYou} waiting on you. Rename anyone, drop goals you don&apos;t want, then hire them.
-          {proposal.engine === "heuristic" ? " (Organised by rules — add an Anthropic API key for Claude-picked teams.)" : ""}
+          {proposal.engine === "heuristic" ? " (Organised by rules — install Claude Code and sign in for Claude-picked teams.)" : ""}
         </p>
       </div>
 

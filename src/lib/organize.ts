@@ -1,6 +1,6 @@
 import "server-only";
 import { get, getSetting, insert, now, setSetting, update } from "./db";
-import { hasClaudeKey, proposeWithClaude } from "./classify/claude";
+import { hasClaude, proposeWithClaude } from "./classify/claude";
 import { proposeHeuristically } from "./classify/heuristic";
 import { applyProposal, loadDigests, loadOrgAsProposal, markSetupComplete } from "./classify/apply";
 import type { Proposal } from "./classify/schema";
@@ -40,7 +40,7 @@ export async function startOrganize(mode: OrganizeJob["mode"], opts: { forceHeur
   if (current?.state === "running" && current.startedAt && Date.now() - Date.parse(current.startedAt) < 15 * 60_000) {
     return current;
   }
-  const engine = hasClaudeKey() && !opts.forceHeuristic ? "claude" : "heuristic";
+  const engine = hasClaude() && !opts.forceHeuristic ? "claude" : "heuristic";
   const job: OrganizeJob = { state: "running", mode, engine, done: 0, total: 0, startedAt: new Date().toISOString() };
   await save(job);
   // Deliberately not awaited: the Node server keeps running the promise after the response.

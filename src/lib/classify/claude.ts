@@ -1,6 +1,5 @@
 import "server-only";
-import { anthropic } from "../anthropic";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { askClaude } from "../claude-cli";
 import { ProposalSchema, mergeProposals, repairProposal, type Proposal, type SessionDigest } from "./schema";
 
 const MODEL = "claude-opus-5-5";
@@ -38,7 +37,7 @@ and focus on re-judging attention for it.
 
 Every session id you are given must appear exactly once in assignments, and every key you reference must exist in projects.`;
 
-export { hasClaudeKey } from "../anthropic";
+export { hasClaude } from "../claude-cli";
 
 /**
  * Classify sessions in batches. The first batch drafts the org; later batches see the
@@ -64,28 +63,12 @@ async function classifyBatch(batch: SessionDigest[], org: Proposal["projects"]):
     ? `Current org (reuse these keys; add new projects/teams/members/goals only when nothing fits):\n${JSON.stringify(org)}`
     : "There is no org yet. Create it from these sessions.";
 
-  // Streamed: a large org with many assignments can take a while to write out.
-  const stream = anthropic().beta.messages.stream({
+  // Through the Claude CLI on your login; a large org with many assignments takes a while to write out.
+  return askClaude({
     model: MODEL,
-    max_tokens: 32000,
+    effort: "medium",
     system: SYSTEM,
-    output_config: { effort: "medium", format: betaZodOutputFormat(ProposalSchema) },
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    messages: [
-      {
-        role: "user",
-        content: `${orgBlock}\n\nToday is ${new Date().toISOString().slice(0, 10)}.\n\nSessions:\n${JSON.stringify(batch)}\n\nReturn the full org (existing plus anything new) and one assignment per session.`,
-      },
-    ],
+    schema: ProposalSchema,
+    prompt: `${orgBlock}\n\nToday is ${new Date().toISOString().slice(0, 10)}.\n\nSessions:\n${JSON.stringify(batch)}\n\nReturn the full org (existing plus anything new) and one assignment per session.`,
   });
-  const response = await stream.finalMessage();
-
-  if (response.stop_reason === "refusal") {
-    throw new Error("Claude declined to classify this batch.");
-  }
-  if (response.stop_reason === "max_tokens" || !response.parsed_output) {
-    throw new Error(`Claude returned no usable proposal (stop_reason: ${response.stop_reason}).`);
-  }
-  return response.parsed_output;
 }
