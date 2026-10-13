@@ -115,6 +115,23 @@ export function registerBulkTools(server: McpServer): void {
 
   defineTool(
     server,
+    "set_session_status",
+    {
+      title: "Set session status",
+      kind: "write",
+      description:
+        "Set sessions' status yourself, like the status cell on Timu's boards: needs_me raises an ask (they show under Needs you), done or idle closes any open ask, claude goes back to the status Claude reports. A status you set lasts until the session has new activity. Returns an undo_id.",
+      input: z.object({ sessions: many(SESSION_REF), status: z.enum(["needs_me", "done", "idle", "claude"]) }),
+    },
+    async ({ sessions, status }) => {
+      const ids = (await findSessions(sessions)).map((s) => s.id);
+      const to = status === "needs_me" ? "needs_you" : status === "claude" ? null : status;
+      return report(`set ${ids.length} session(s) to ${status}`, await bulk.bulkSessions(ids, { type: "status", status: to }));
+    },
+  );
+
+  defineTool(
+    server,
     "refile_sessions",
     {
       title: "Re-file sessions",

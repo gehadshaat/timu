@@ -140,7 +140,13 @@ The extension reads claude.ai's own web API with your existing session cookies. 
 
 Timu is also an MCP server, so Claude can do everything you can do in the UI: "file my unfiled sessions", "set up a Marketing team for Sunbeam with an SEO lead", "what needs me today?", "close the asks about merged PRs and remember that rule".
 
-Everything the UI does in bulk works over MCP too: handle many asks at once, move, archive or re-file sessions, add to-dos in quick-add syntax (`Write FAQ @Maya #sunbeam !high due:fri`, one per line), add goals and milestones, hire several people, move people and projects. Changes that can be undone return an `undo_id` for the `undo` tool. Claude can also `search` by name and read or leave comments on any company, project, team, teammate, goal, session or to-do.
+Everything the UI does in bulk works over MCP too: handle many asks at once, move, archive or re-file sessions, add to-dos in quick-add syntax (`Write FAQ @Maya #sunbeam !high due:fri`, one per line), add goals and milestones, hire several people, move people and projects. Changes that can be undone return an `undo_id` for the `undo` tool. Claude can also `search` by name and read or leave comments on any company, project, team, teammate, goal, session or to-do. It can also:
+
+- set a session's status, like the board's status cell (`set_session_status`: needs_me / done / idle / claude);
+- read and import your routines (`list_routines`, `import_routines`);
+- read, import and file your artifacts at any level (`list_artifacts` by company, project, goal, teammate or session; `import_artifacts`; `move_artifact`).
+
+`get_org`, `get_project`, `get_teammate` and `get_session` include the related artifacts.
 
 `npm run setup` (or `npm run dev`) generates `TIMU_MCP_TOKEN` in `.env.local`. **Settings → Let Claude run Timu** shows the commands below with your URL filled in.
 
@@ -200,6 +206,8 @@ Timu keeps its data in one SQLite file, so host it somewhere with a persistent d
 All data access is plain SQL in `src/lib` (through `src/lib/db.ts`), so moving to Postgres later means porting `db/schema.sql` and swapping the driver. Every table already has an `owner_id` column for when Timu becomes multi-user.
 
 ## Development
+
+Contributing, or asking Claude to change Timu? Start with [`CLAUDE.md`](CLAUDE.md). It covers the map of the code, the patterns to follow (migrations, boards, MCP tools, sign-in), the public-repo rules (demo data only) and the checklist every feature must pass: tests, MCP, README, setup and the website.
 
 ### The website
 
