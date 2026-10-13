@@ -23,6 +23,7 @@ import { getGoals, getInbox, getOffice, getOrg, getProjectBySlug, getRecentWins,
 
 const VIEWS = [
   { key: "board", label: "Board", icon: "📋" },
+  { key: "artifacts", label: "Artifacts", icon: "🖼️" },
   { key: "team", label: "Team", icon: "🪑" },
   { key: "notes", label: "Notes", icon: "💬" },
 ] as const;
@@ -53,7 +54,7 @@ export default async function ProjectPage({
   const goalComments = await getCommentsMap("goal", goals.map((g) => g.goal.id));
   const asks = inbox.filter((i) => i.project?.id === project.id);
   const routines = view === "board" ? getRoutines(org, { projectId: project.id }).map(toRoutineItem) : [];
-  const artifacts = view === "board" ? getArtifacts(org, { projectId: project.id }) : [];
+  const artifacts = getArtifacts(org, { projectId: project.id });
   const options = orgOptions(org);
   const sessionOptions = sessions.map(({ id, title, goal_id }) => ({ id, title, goal_id }));
   const projectWins = wins.get(project.id) ?? [];
@@ -125,6 +126,7 @@ export default async function ProjectPage({
             <span aria-hidden>{v.icon}</span> {v.label}
             {v.key === "team" ? <span className="ml-1 text-xs text-zinc-400">{agentCount}</span> : null}
             {v.key === "notes" && comments.length ? <span className="ml-1 text-xs text-zinc-400">{comments.length}</span> : null}
+            {v.key === "artifacts" && artifacts.length ? <span className="ml-1 text-xs text-zinc-400">{artifacts.length}</span> : null}
           </Link>
         ))}
       </nav>
@@ -140,12 +142,6 @@ export default async function ProjectPage({
             comments={goalComments}
             asks={Object.fromEntries(asks.map((a) => [a.session.id, a.task.id]))}
           />
-          {artifacts.length ? (
-            <section id="artifacts" className="scroll-mt-6 space-y-2">
-              <h2 className="font-display text-lg font-bold">🖼️ Artifacts</h2>
-              <ArtifactsBoard items={artifacts} options={options} grouped={false} />
-            </section>
-          ) : null}
           {routines.length ? (
             <section className="space-y-2">
               <h2 className="font-display text-lg font-bold">⏰ Scheduled</h2>
@@ -163,6 +159,8 @@ export default async function ProjectPage({
           </details>
         </>
       ) : null}
+
+      {view === "artifacts" ? <ArtifactsBoard items={artifacts} options={options} grouped={false} empty={<>No artifacts here yet. Import your gallery on the Artifacts page (or ask Claude to), or file one here from its project cell.</>} /> : null}
 
       {view === "team" ? (
         <>

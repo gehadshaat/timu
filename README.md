@@ -112,7 +112,7 @@ Claude can read them with the `list_routines` MCP tool.
 
 ### Artifacts
 
-The **🖼️ Artifacts** page (under More) collects your Claude artifacts. Each project's board shows its own, and each session page lists the ones it made. There are two kinds:
+The **🖼️ Artifacts** page (under More) collects your Claude artifacts. Companies and projects each have an **Artifacts** tab with theirs; goal, team, person and session pages list the ones their sessions made, and 🖼️ chips on session and goal rows jump to them. There are two kinds:
 
 - **Published artifacts:** pages on claude.ai (`claude.ai/artifact/…`).
 - **Chat artifacts:** documents, code and apps Claude made inside your claude.ai chats.

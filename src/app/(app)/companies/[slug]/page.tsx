@@ -17,6 +17,7 @@ import { getCompanyBySlug, getGoals, getInbox, getOffice, getOrg, orgOptions } f
 
 const VIEWS = [
   { key: "board", label: "Board", icon: "📋" },
+  { key: "artifacts", label: "Artifacts", icon: "🖼️" },
   { key: "people", label: "People", icon: "🧑‍🤝‍🧑" },
   { key: "notes", label: "Notes", icon: "💬" },
 ] as const;
@@ -56,6 +57,7 @@ export default async function CompanyPage({
       artifacts: g.sessions.reduce((n, x) => n + (x.artifact_count ?? 0), 0),
     })),
   }));
+  const artifacts = getArtifacts(org, { companyId: company.id });
   const tabHref = (key: View) => (key === "board" ? `/companies/${company.slug}` : `/companies/${company.slug}?view=${key}`);
 
   return (
@@ -104,6 +106,7 @@ export default async function CompanyPage({
           >
             <span aria-hidden>{v.icon}</span> {v.label}
             {v.key === "notes" && comments.length ? <span className="ml-1 text-xs text-zinc-400">{comments.length}</span> : null}
+            {v.key === "artifacts" && artifacts.length ? <span className="ml-1 text-xs text-zinc-400">{artifacts.length}</span> : null}
           </Link>
         ))}
       </nav>
@@ -111,20 +114,13 @@ export default async function CompanyPage({
       {view === "board" ? (
         <>
           <GoalsOverview groups={groups} />
-          {(() => {
-        const artifacts = getArtifacts(org, { companyId: company.id });
-        return artifacts.length ? (
-          <section id="artifacts" className="scroll-mt-6 space-y-2">
-            <h2 className="font-display text-xl font-bold">🖼️ Artifacts <span className="text-sm font-semibold text-zinc-400">· {artifacts.length}</span></h2>
-            <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped={true} />
-          </section>
-        ) : null;
-      })()}
           <div className="flex justify-end">
             <EntityDialog kind="project" initial={{ company_id: company.id, emoji: "📁" }} choices={org.companies.map((c) => ({ id: c.id, label: `${c.emoji} ${c.name}` }))} navigate />
           </div>
         </>
       ) : null}
+
+      {view === "artifacts" ? <ArtifactsBoard items={artifacts} options={orgOptions(org)} grouped empty={<>No artifacts here yet. Import your gallery on the Artifacts page (or ask Claude to), or file one here from its project cell.</>} /> : null}
 
       {view === "people" ? (
         <>
