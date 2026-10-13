@@ -110,6 +110,24 @@ Timu offers two ways to get them:
 
 Claude can read them with the `list_routines` MCP tool.
 
+### Artifacts
+
+The **🖼️ Artifacts** page (under More) collects your Claude artifacts. Each project's board shows its own, and each session page lists the ones it made. There are two kinds:
+
+- **Published artifacts:** pages on claude.ai (`claude.ai/artifact/…`).
+- **Chat artifacts:** documents, code and apps Claude made inside your claude.ai chats.
+
+How they get in:
+
+- **From your sessions:** when a local Claude Code session publishes an artifact, Timu sees it in the transcript and links it to that session. Only actual publishes count; links a session merely mentions or lists don't. Chat artifacts come in with your claude.ai chats (export or Chrome extension).
+- **Your whole gallery:** with Timu connected over MCP, ask Claude *"list my artifacts and import them into Timu"*. Or paste the list Claude prints under **Update artifacts**.
+
+How they're filed:
+
+- Under the project of the session that made them; otherwise, by matching their title to a project or company name.
+- Click an artifact's project cell to move it. Artifacts you've moved stay where you put them.
+- For Claude: the `list_artifacts`, `import_artifacts` and `move_artifact` MCP tools.
+
 ### Chrome extension
 
 1. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and select `extension/`.

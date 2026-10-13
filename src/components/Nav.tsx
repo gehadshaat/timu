@@ -52,6 +52,7 @@ const MORE: NavLink[] = [
   { href: "/organize", label: "Organize", icon: "🧩", badge: "unfiled", tone: "bg-amber-300 text-amber-950" },
   { href: "/sessions", label: "All sessions", icon: "🗂️" },
   { href: "/routines", label: "Scheduled", icon: "⏰" },
+  { href: "/artifacts", label: "Artifacts", icon: "🖼️" },
   { href: "/projects", label: "Projects & goals", icon: "🎯" },
   { href: "/settings", label: "Sources & settings", icon: "⚙️" },
 ];

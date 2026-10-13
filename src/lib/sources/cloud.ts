@@ -2,6 +2,7 @@ import type { NormalizedSession, SessionStatus } from "../types";
 import { listAccounts } from "../claude-accounts";
 import { ClaudeAuthError, claudeTokens } from "../claude-auth";
 import { clip, repoFromUrl } from "../text";
+import { extractArtifactLinks } from "./artifacts";
 
 /**
  * Claude Code cloud sessions (claude.ai/code).
@@ -84,6 +85,7 @@ export function mapCloudSession(rec: CloudSessionRecord): NormalizedSession {
       needs_action: needsAction,
       model: rec.session_context?.model,
       unread: rec.unread ?? false,
+      artifacts: extractArtifactLinks([pts?.recent_action, pts?.status_detail, rec.task_summary, rec.external_metadata?.task_summary].filter(Boolean).join("\n")),
     },
   };
 }

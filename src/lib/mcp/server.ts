@@ -1,5 +1,6 @@
 import "server-only";
 import { McpServer } from "@modelcontextprotocol/server";
+import { registerArtifactTools } from "./tools/artifacts";
 import { registerBulkTools } from "./tools/bulk";
 import { registerNoteTools } from "./tools/notes";
 import { registerOrgTools } from "./tools/org";
@@ -30,5 +31,6 @@ export function createTimuMcp(): McpServer {
   registerBulkTools(server);
   registerNoteTools(server);
   registerRoutineTools(server);
+  registerArtifactTools(server);
   return server;
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { GoalsTable } from "@/components/goals/GoalsTable";
 import { RoutinesBoard } from "@/components/routines/RoutinesBoard";
+import { ArtifactsBoard } from "@/components/artifacts/ArtifactsBoard";
+import { getArtifacts } from "@/lib/artifacts";
 import { getRoutines, toRoutineItem } from "@/lib/routines";
 import { Renameable } from "@/components/ui/Renameable";
 import { getComments, getCommentsMap } from "@/lib/comments";
@@ -51,6 +53,7 @@ export default async function ProjectPage({
   const goalComments = await getCommentsMap("goal", goals.map((g) => g.goal.id));
   const asks = inbox.filter((i) => i.project?.id === project.id);
   const routines = view === "board" ? getRoutines(org, { projectId: project.id }).map(toRoutineItem) : [];
+  const artifacts = view === "board" ? getArtifacts(org, { projectId: project.id }) : [];
   const options = orgOptions(org);
   const sessionOptions = sessions.map(({ id, title, goal_id }) => ({ id, title, goal_id }));
   const projectWins = wins.get(project.id) ?? [];
@@ -137,6 +140,12 @@ export default async function ProjectPage({
             comments={goalComments}
             asks={Object.fromEntries(asks.map((a) => [a.session.id, a.task.id]))}
           />
+          {artifacts.length ? (
+            <section className="space-y-2">
+              <h2 className="font-display text-lg font-bold">🖼️ Artifacts</h2>
+              <ArtifactsBoard items={artifacts} options={options} grouped={false} />
+            </section>
+          ) : null}
           {routines.length ? (
             <section className="space-y-2">
               <h2 className="font-display text-lg font-bold">⏰ Scheduled</h2>

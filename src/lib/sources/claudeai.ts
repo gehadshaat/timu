@@ -22,8 +22,28 @@ export interface ClaudeAiMessage {
   uuid?: string;
   sender?: "human" | "assistant" | string;
   text?: string;
-  content?: { type?: string; text?: string }[];
+  content?: { type?: string; text?: string; name?: string; input?: Record<string, unknown> }[];
   created_at?: string;
+}
+
+/**
+ * The artifacts Claude made in a chat: its `artifacts` tool calls (documents, code, diagrams, apps
+ * in the side panel). They have no page of their own, so their link opens the chat.
+ */
+export function chatArtifacts(conv: ClaudeAiConversation): { id: string; url: string; title: string | null }[] {
+  const out = new Map<string, { id: string; url: string; title: string | null }>();
+  for (const m of conv.chat_messages ?? []) {
+    for (const b of m.content ?? []) {
+      if (b.type !== "tool_use" || b.name !== "artifacts" || !b.input) continue;
+      const key = typeof b.input.id === "string" ? b.input.id : null;
+      if (!key) continue;
+      const id = `chat-${conv.uuid}-${key}`;
+      const title = typeof b.input.title === "string" ? clip(b.input.title, 200) : null;
+      // Later edits keep the first title unless the edit names one.
+      out.set(id, { id, url: `https://claude.ai/chat/${conv.uuid}`, title: title ?? out.get(id)?.title ?? null });
+    }
+  }
+  return [...out.values()];
 }
 
 function messageText(m: ClaudeAiMessage): string {
@@ -62,6 +82,7 @@ export function mapClaudeAiConversation(conv: ClaudeAiConversation): NormalizedS
     raw: {
       summary: conv.summary ?? null,
       project: conv.project?.name ?? null,
+      artifacts: chatArtifacts(conv),
     },
   };
 }
