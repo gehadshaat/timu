@@ -1,7 +1,6 @@
 import "server-only";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { anthropic } from "../anthropic";
+import { askClaude } from "../claude-cli";
 import type { Verdict } from "../types";
 import type { TriageInput } from "./rules";
 
@@ -26,19 +25,18 @@ export async function claudeJudge(inputs: TriageInput[], memory: string[]): Prom
   const out = new Map<string, Verdict>();
   for (let i = 0; i < inputs.length; i += BATCH) {
     const batch = inputs.slice(i, i + BATCH);
-    const res = await anthropic().messages.parse({
+    const res = await askClaude({
       model: MODEL,
-      max_tokens: 8000,
-      output_config: { effort: "low", format: zodOutputFormat(Schema) },
+      effort: "low",
+      schema: Schema,
       system:
         "You triage a person's AI work sessions. For each session decide whether the person genuinely needs to do something now. " +
         "Follow the person's rules exactly; when in doubt and nothing concrete is asked of them, say not needed.\n\nThe person's rules:\n" +
         memory.map((m) => `- ${m}`).join("\n"),
-      messages: [{ role: "user", content: `Sessions:\n${JSON.stringify(batch)}\n\nReturn one verdict per session id.` }],
+      prompt: `Sessions:\n${JSON.stringify(batch)}\n\nReturn one verdict per session id.`,
     });
-    if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error(`Haiku triage failed (stop_reason: ${res.stop_reason})`);
     const at = new Date().toISOString();
-    for (const v of res.parsed_output.verdicts) {
+    for (const v of res.verdicts) {
       if (!batch.some((b) => b.id === v.id)) continue;
       out.set(v.id, {
         needed: v.needed,

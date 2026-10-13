@@ -2,7 +2,7 @@ import { hash, slugify } from "../text";
 import { repairProposal, type PropKindName, type Proposal, type ProposalProject, type SessionDigest } from "./schema";
 
 /**
- * Rules-based organiser for when no Anthropic API key is set.
+ * Rules-based organiser for when the Claude CLI is not available.
  * Project = repo owner (or repo / claude.ai project / "Personal"), team and role from keywords.
  */
 
