@@ -2,7 +2,27 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync, type SQLInputValue, type StatementSync } from "node:sqlite";
+import type { DatabaseSync, SQLInputValue, StatementSync } from "node:sqlite";
+
+/**
+ * node:sqlite prints "ExperimentalWarning: SQLite is an experimental feature" once per process, and
+ * Next.js dev starts many processes. Load it with that one warning muted; every other warning still prints.
+ */
+function loadSqlite(): typeof import("node:sqlite") {
+  const emit = process.emitWarning;
+  process.emitWarning = ((warning: string | Error, ...rest: unknown[]) => {
+    const type = typeof rest[0] === "string" ? rest[0] : (rest[0] as { type?: string } | undefined)?.type;
+    const message = typeof warning === "string" ? warning : warning.message;
+    if (type === "ExperimentalWarning" && /SQLite/.test(message)) return;
+    return (emit as (...a: unknown[]) => void).call(process, warning, ...rest);
+  }) as typeof process.emitWarning;
+  try {
+    return process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
+  } finally {
+    process.emitWarning = emit;
+  }
+}
+const sqlite = loadSqlite();
 
 /**
  * Timu's database: one SQLite file, queried with raw SQL.
@@ -32,7 +52,7 @@ export function dbPath(): string {
 /** Open (and if needed create or migrate) a database file. Exported for tests and setup. */
 export function openDatabase(file: string): DatabaseSync {
   if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
-  const d = new DatabaseSync(file);
+  const d = new sqlite.DatabaseSync(file);
   d.exec("pragma journal_mode = wal; pragma busy_timeout = 5000; pragma foreign_keys = on;");
   migrate(d);
   return d;
