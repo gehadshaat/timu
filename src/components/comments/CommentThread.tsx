@@ -3,8 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { addCommentAction, deleteCommentAction, editCommentAction, restoreCommentAction } from "@/app/_actions/comments";
 import type { CommentEntity, CommentRow } from "@/lib/comments";
-import { timeAgo } from "@/lib/format";
 import { useToast } from "../ui/Toaster";
+import { Ago } from "../ui/Ago";
 
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 
@@ -41,7 +41,7 @@ function Comment({ c, onChanged, onDeleted }: { c: CommentRow; onChanged: (c: Co
       <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md bg-white px-3 py-2 ring-1 ring-black/5">
         <div className="mb-0.5 flex items-center gap-2 text-[11px] font-semibold text-zinc-400">
           <span className="text-zinc-600">You</span>
-          <span title={new Date(c.created_at).toLocaleString()}>{timeAgo(c.created_at)}</span>
+          <span title={new Date(c.created_at).toLocaleString()}><Ago iso={c.created_at} /></span>
           {edited ? <span>· edited</span> : null}
           <span className="ml-auto flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
             <button type="button" onClick={() => setEditing(true)} className="rounded px-1.5 hover:bg-zinc-100 hover:text-zinc-700">

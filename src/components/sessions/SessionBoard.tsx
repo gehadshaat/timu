@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { bulkSessionsAction, type BulkResult, type SessionOp } from "@/app/_actions/bulk";
-import { timeAgo } from "@/lib/format";
 import { resumeFor } from "@/lib/links";
 import type { OrgOptions } from "@/lib/queries";
 import type { SessionLite } from "@/lib/session-lite";
@@ -15,6 +14,7 @@ import { ArtifactChip } from "../artifacts/ArtifactChip";
 import { SessionStatusCell } from "../board/SessionStatusCell";
 import { groupColor } from "../board/palette";
 import { BAR_POPOVER, BarButton, BulkBar, SelectBox } from "../ui/BulkBar";
+import { Ago } from "../ui/Ago";
 import { Leaving, markedClasses } from "../ui/Leaving";
 import { OrgPicker, type Pick as Picked } from "../ui/Picker";
 import { MenuItem, Popover } from "../ui/Popover";
@@ -116,7 +116,7 @@ export function SessionBoard({
     const goal = s.goal_id ? goals.get(s.goal_id) : undefined;
     const selected = sel.has(s.id);
     return (
-      <Leaving key={s.id} phase={phase} as="li">
+      <Leaving key={s.id} phase={phase} as="li" className="board-row">
         <div className={clsx(COLS, "group relative border-t border-zinc-100 bg-white hover:bg-zinc-50", selected && "bg-amber-50 hover:bg-amber-50", markedClasses(phase, effect))}>
           <div className="flex items-center justify-center border-l-[6px]" style={{ borderColor: color }}>
             <SelectBox checked={selected} onToggle={(shift) => sel.toggle(s.id, { shift })} label={`Select “${s.title}”`} className="h-3.5 w-3.5 cursor-pointer accent-amber-500" />
@@ -190,7 +190,7 @@ export function SessionBoard({
           <div className="flex items-stretch border-l border-white [&>div]:flex [&>div]:w-full">
             <SessionStatusCell session={{ ...s, status: s.claude_status }} askId={asks[s.id]} />
           </div>
-          <div className="hidden items-center justify-center border-l border-zinc-100 text-[11px] text-zinc-500 md:flex">{timeAgo(s.last_activity_at)}</div>
+          <div className="hidden items-center justify-center border-l border-zinc-100 text-[11px] text-zinc-500 md:flex"><Ago iso={s.last_activity_at} /></div>
           <div className="flex items-center justify-center border-l border-zinc-100">
             <Popover label="⋯" title="Session actions" align="right" floating className="rounded-lg px-2 py-0.5 text-sm text-zinc-500 hover:bg-zinc-100">
               {(close) => {

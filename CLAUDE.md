@@ -62,7 +62,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | --- | --- |
 | `db/schema.sql` | The schema a **fresh** database starts from (applied as version 1). |
 | `db/migrations/NNNN_name.sql` | Every schema change after that, applied in order on open (`PRAGMA user_version`). |
-| `src/lib/db.ts` | SQLite helpers: `all`, `get`, `scalar`, `run`, `insert` (with `on conflict`), `update`, `tx`, `getSetting`/`setSetting`. `IN` lists: `id in (select value from json_each(?))` with the array as one param. |
+| `src/lib/db.ts` | SQLite helpers: `all`, `get`, `scalar`, `run`, `insert` (with `on conflict`), `update`, `tx`, `getSetting`/`setSetting`. `IN` lists: `id in (select value from json_each(?))` with the array as one param. Statements are cached and return arrays turned into plain objects by a generated constructor (fast, and safe to pass to client components). |
 | `src/lib/types.ts` | Row types (`SessionRow`, `TaskRow`, `GoalRow`…). Keep in step with the schema. |
 | `src/lib/queries.ts` | Read models for pages: `getOrg`, `getSessions` (`SESSION_LIST_COLUMNS`), `getGoals`, `getTodos`, `getInbox`, `getOffice`… |
 | `src/lib/ops.ts` | Single-item writes (`ActionResult`), `syncAll`. |
@@ -121,10 +121,15 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 - Group colours: `groupColor(i)`. Status colours: `SESSION_STATUS`, `GOAL_STATUS`, `PRIORITY`, `ASK_KIND`,
   `POSE_TONE` in `palette.ts` — never hard-code a new status colour elsewhere.
 - Menus inside tables use `<Popover floating>` (otherwise rows clip them).
-- **Relative times** ("5m ago", "in 3h") render after mount (`useMounted`/`useNow` patterns) or are computed on
-  the server and passed as strings — never `Date.now()` during client render (hydration mismatch).
+- **Relative times** ("5m ago", "in 3h") render after mount (`<Ago iso>` in `components/ui/Ago.tsx`, or the `useNow`
+  pattern) or are computed on the server and passed as strings — never `Date.now()`/`timeAgo()` during client render:
+  a text mismatch makes React re-render the whole page.
 - Must work at phone width: hide lesser columns with `hidden sm:flex`/`md:flex`, no horizontal page scroll.
 - Every session row offers **Open** (`OpenSession`, with `resumeFor()` for local sessions) and its 🖼️ artifacts chip.
+- **Keep pages light.** Long lists put `className="board-row"` on their `<Leaving as="li">` rows (the browser skips
+  off-screen rows; menus inside them must be `<Popover floating>`). Small desk-less avatars (`Character`, ≤ 64px) are
+  `<img>`s of `/api/avatar`, drawn once and cached: keep `Character` and its parts hook-free and style-object-free,
+  since `character-svg.ts` serialises them (and keep `character-css.ts` in step with `globals.css`; a test checks).
 - The office (`/office`, `components/office/OfficeMap.tsx`) is the one non-board view; keep it memoised so only
   "you" re-renders while walking.
 
@@ -156,6 +161,8 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 - Vitest, `src/**/*.test.ts`. DB tests: `beforeAll(() => useDatabase(openDatabase(":memory:")))`,
   `afterAll(() => useDatabase(null))` — migrations run automatically.
 - Test parsers (`sources/*`), layout/maths, filing rules and every bulk op with its undo. Demo names only.
+- `src/lib/perf.test.ts` holds every page's read model to **20 ms** on a 2,000-session workspace. If a change trips
+  it, fix the query (group in one pass, don't filter per row) rather than raising the budget.
 
 ---
 

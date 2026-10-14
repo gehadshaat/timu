@@ -5,12 +5,13 @@ import clsx from "clsx";
 import { Character } from "../Character";
 import { SourceBadge } from "../SourceBadge";
 import { SelectBox } from "../ui/BulkBar";
+import { Ago } from "../ui/Ago";
 import { LeaveStamp, markedClasses } from "../ui/Leaving";
 import { MenuItem, Popover, SNOOZE_CHOICES } from "../ui/Popover";
 import type { LeaveEffect, LeavePhase } from "../ui/useLeaving";
 import { AskActions, OpenSession, type AskHandlers } from "./AskActions";
 import { ENGINE_ICON, KIND_POSE, KIND_STYLE } from "./style";
-import { KIND_LABEL, timeAgo } from "@/lib/format";
+import { KIND_LABEL } from "@/lib/format";
 import { companyHref, personHref, projectHref, teamHref } from "@/lib/links";
 import type { AskView } from "@/lib/ask-view";
 
@@ -88,7 +89,7 @@ export function AskCard({ ask, phase, effect, handlers, selected, onSelect, focu
               · {ask.company.emoji} {ask.company.name}
             </Link>
           ) : null}
-          <span>· {timeAgo(ask.raisedAt)}</span>
+          <span>· <Ago iso={ask.raisedAt} /></span>
           {ask.judge ? (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500" title={`${ask.judge.reason} (${ask.judge.engine})`}>
               {ENGINE_ICON[ask.judge.engine] ?? "🤖"} {Math.round(ask.judge.confidence * 100)}% sure
@@ -146,7 +147,7 @@ export function AskRow({ ask, phase, effect, handlers, selected, onSelect, focus
         <span className="block truncate text-xs text-zinc-500">
           {ask.agent ? `${ask.agent.name} · ` : ""}
           {showProject && ask.project ? `${ask.project.emoji} ${ask.project.name} · ` : ""}
-          {timeAgo(ask.raisedAt)}
+          <Ago iso={ask.raisedAt} />
         </span>
       </div>
       {/* On phones the actions wrap onto their own line; from sm up they float over the row's right

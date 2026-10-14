@@ -1,5 +1,35 @@
 import type { AvatarSpec, PropKind } from "@/lib/types";
-import { traitsFor, type Pose, type Traits } from "@/lib/avatar";
+import { avatarUrl, traitsFor, type Pose, type Traits } from "@/lib/avatar";
+
+type CharacterProps = Parameters<typeof CharacterSvg>[0];
+
+/** Avatars this small (desk-less, seated: the ones in board rows and chips) are drawn as images. */
+const IMAGE_MAX = 64;
+
+/**
+ * A cartoon team member. Small plain avatars, the kind boards repeat on every row, are an <img> of
+ * /api/avatar (the same drawing and animations): one element instead of ~30 SVG ones, rendered once
+ * per look and cached by the browser across pages. Everything else is drawn inline by CharacterSvg.
+ */
+export function Character(props: CharacterProps) {
+  const { spec, pose, size = 160, desk = true, stance = "seated", carry, absent, title } = props;
+  if (desk || stance !== "seated" || carry || absent || size > IMAGE_MAX) return <CharacterSvg {...props} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- a small SVG; next/image would add nothing
+    <img
+      src={avatarUrl(spec, pose)}
+      width={size}
+      height={Math.round((size * 122) / 144)}
+      style={{ width: size, height: (size * 122) / 144 }}
+      alt={title ?? "Team member"}
+      title={title}
+      // Lazy: React doesn't preload it ahead of the page's own files, and off-screen rows don't fetch.
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
 
 /**
  * Parametric cartoon team member.
@@ -8,7 +38,7 @@ import { traitsFor, type Pose, type Traits } from "@/lib/avatar";
  * at your desk and for teammates wandering the office.
  * Animations are CSS classes defined in globals.css.
  */
-export function Character({
+export function CharacterSvg({
   spec,
   pose,
   size = 160,

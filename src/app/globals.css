@@ -129,6 +129,9 @@ body {
   transition: grid-template-rows 0.38s ease, opacity 0.3s ease, margin 0.38s ease;
 }
 .leave > .leave-inner { min-height: 0; min-width: 0; }
+/* Long boards: the browser skips styling, laying out and painting rows until they're scrolled near.
+   Only rows at rest: a marked row's ring and stamp draw outside it and must not be clipped. */
+.board-row[data-phase="idle"] { content-visibility: auto; contain-intrinsic-size: auto 46px; }
 .leave-out { grid-template-rows: 0fr; opacity: 0; margin-top: 0 !important; margin-bottom: 0 !important; }
 .leave-out > .leave-inner { overflow: hidden; }
 

@@ -231,7 +231,7 @@ export function TodoList({
       {rows.map((it) => {
         const { phase, effect } = list.phaseOf(it.task.id);
         return (
-          <Leaving key={it.task.id} phase={phase} as="li">
+          <Leaving key={it.task.id} phase={phase} as="li" className="board-row">
             <Row
               item={override[it.task.id] ? { ...it, task: { ...it.task, status: override[it.task.id] } } : it}
               options={options}

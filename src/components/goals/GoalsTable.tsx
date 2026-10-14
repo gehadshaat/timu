@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import clsx from "clsx";
 import {
   addMilestoneAction,
@@ -16,7 +16,7 @@ import {
 } from "@/app/actions";
 import { bulkAddGoalsAction, bulkTodosAction, type TodoOp } from "@/app/_actions/bulk";
 import type { CommentRow } from "@/lib/comments";
-import { dueLabel, timeAgo } from "@/lib/format";
+import { dueLabel } from "@/lib/format";
 import { goalHref, projectHref, resumeFor } from "@/lib/links";
 import { isoDate, parseLines } from "@/lib/quickadd";
 import type { GoalView, OrgOptions, TodoItem } from "@/lib/queries";
@@ -29,6 +29,7 @@ import { GOAL_STATUS, GROUP_COLORS, PRIORITY } from "../board/palette";
 import { CommentThread } from "../comments/CommentThread";
 import { GoalForm } from "../GoalForm";
 import { OrgPicker } from "../ui/Picker";
+import { Ago } from "../ui/Ago";
 import { MenuItem, Popover } from "../ui/Popover";
 import { Renameable } from "../ui/Renameable";
 import { useToast } from "../ui/Toaster";
@@ -62,17 +63,6 @@ function addDays(n: number) {
   return isoDate(d);
 }
 
-/** Relative times differ between server and browser, so render them only after mount. */
-function useMounted() {
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  return m;
-}
-
-function Ago({ iso }: { iso: string | null }) {
-  const mounted = useMounted();
-  return <span className="text-xs text-zinc-500">{mounted ? timeAgo(iso) : ""}</span>;
-}
 
 /** A solid colour cell — the board's status / priority look. */
 function Block({ bg, children, onClick, title, dim }: { bg: string; children: React.ReactNode; onClick?: () => void; title?: string; dim?: boolean }) {
@@ -246,7 +236,7 @@ export function TodoRow({ item, color, options, where }: { item: TodoItem; color
         </Block>
       </Cell>
       <Cell className={WIDE}>
-        <Ago iso={task.created_at} />
+        <Ago iso={task.created_at} className="text-xs text-zinc-500" />
       </Cell>
     </div>
   );
@@ -293,7 +283,7 @@ function MilestoneRowView({ m, color }: { m: MilestoneRow; color: string }) {
         <Empty />
       </Cell>
       <Cell className={WIDE}>
-        <Ago iso={m.done_at} />
+        <Ago iso={m.done_at} className="text-xs text-zinc-500" />
       </Cell>
     </div>
   );
@@ -358,7 +348,7 @@ export function SessionRowView({
         <Empty />
       </Cell>
       <Cell className={WIDE}>
-        <Ago iso={s.last_activity_at} />
+        <Ago iso={s.last_activity_at} className="text-xs text-zinc-500" />
       </Cell>
     </div>
   );

@@ -98,6 +98,22 @@ export async function getOffice(projectId?: string): Promise<TeamView[]> {
   const tasks = all<TaskRow>("select * from tasks where status <> 'done'");
   const todos = tasks.filter((t) => t.origin === "manual" && t.agent_id);
   const now = Date.now();
+  // Each teammate's sessions and open tasks, in their original order: one pass, not a filter per teammate.
+  const sessionsOf = new Map<string, SessionRow[]>();
+  for (const s of sessions) {
+    const list = sessionsOf.get(s.agent_id!);
+    if (list) list.push(s);
+    else sessionsOf.set(s.agent_id!, [s]);
+  }
+  const ownerOf = new Map(sessions.map((s) => [s.id, s.agent_id!]));
+  const openTasksOf = new Map<string, TaskRow[]>();
+  for (const t of tasks) {
+    const owner = t.session_id ? ownerOf.get(t.session_id) : undefined;
+    if (!owner || !(t.status === "open" || (t.snoozed_until && Date.parse(t.snoozed_until) < now))) continue;
+    const list = openTasksOf.get(owner);
+    if (list) list.push(t);
+    else openTasksOf.set(owner, [t]);
+  }
 
   const teams = org.teams.filter((t) => !projectId || t.project_id === projectId);
   return teams
@@ -106,11 +122,8 @@ export async function getOffice(projectId?: string): Promise<TeamView[]> {
       const members = org.agents
         .filter((a) => a.team_id === team.id)
         .map((agent) => {
-          const mine = sessions.filter((s) => s.agent_id === agent.id);
-          const ids = new Set(mine.map((s) => s.id));
-          const openTasks = tasks.filter(
-            (t) => !!t.session_id && ids.has(t.session_id) && (t.status === "open" || (t.snoozed_until && Date.parse(t.snoozed_until) < now)),
-          );
+          const mine = sessionsOf.get(agent.id) ?? [];
+          const openTasks = openTasksOf.get(agent.id) ?? [];
           const myTodos = todos.filter((t) => t.agent_id === agent.id);
           const working = mine.find((s) => s.status === "working");
           const recentDone = mine.find(

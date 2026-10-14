@@ -239,7 +239,7 @@ The screenshots come from a demo workspace (Sunbeam Co and Duckworks), not real 
 Work on Timu with `npm run dev` (hot reload, at http://localhost:3100). `npm start` serves a production build instead; after changing code without committing, run `npm start -- --rebuild`.
 
 ```bash
-npm test          # vitest: parsers, status mapping, organiser, task/pose logic
+npm test          # vitest: parsers, status mapping, organiser, task/pose logic, and a 20 ms speed budget for page queries
 npm run lint
 npm run typecheck
 ```
