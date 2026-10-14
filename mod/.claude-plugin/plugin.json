@@ -1,0 +1,22 @@
+{
+  "name": "timu",
+  "version": "0.1.0",
+  "description": "Your Claude sessions, run like a small company: filed under company, project and teammate, with what needs you on top.",
+  "author": { "name": "gehadshaat" },
+  "homepage": "https://github.com/gehadshaat/timu",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "days": {
+      "type": "number",
+      "title": "Days to look back",
+      "description": "Sessions with activity in this many days show on the board.",
+      "default": 14
+    },
+    "cloud": {
+      "type": "boolean",
+      "title": "Include cloud sessions",
+      "description": "Also list your claude.ai/code sessions when this session can reach them.",
+      "default": true
+    }
+  }
+}
