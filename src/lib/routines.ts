@@ -39,9 +39,17 @@ export function saveRoutines(payload: unknown, account?: string): RoutinesResult
     .map(mapRoutine)
     .map((r) => (account ? { ...r, account } : r));
   if (!rows.length) return { imported: 0, updated: 0 };
-  const known = new Set(all<{ id: string }>("select id from routines where id in (select value from json_each(?))", rows.map((r) => r.id)).map((r) => r.id));
-  insert("routines", rows as unknown as Record<string, unknown>[], { on: "id", do: "update" });
-  return { imported: rows.filter((r) => !known.has(r.id)).length, updated: rows.filter((r) => known.has(r.id)).length };
+  const known = new Map(
+    all<Record<string, unknown> & { id: string }>("select * from routines where id in (select value from json_each(?))", rows.map((r) => r.id)).map((r) => [r.id, r]),
+  );
+  // Only new or changed routines are written: syncs run every few minutes and must change nothing when nothing changed.
+  const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null) || JSON.stringify(a) === JSON.stringify(b);
+  const changed = rows.filter((r) => {
+    const prev = known.get(r.id);
+    return !prev || Object.entries(r).some(([k, v]) => !same(prev[k], v));
+  });
+  if (changed.length) insert("routines", changed as unknown as Record<string, unknown>[], { on: "id", do: "update" });
+  return { imported: changed.filter((r) => !known.has(r.id)).length, updated: changed.filter((r) => known.has(r.id)).length };
 }
 
 /** Routines from every signed-in Claude account, each with its own login and organisation. */

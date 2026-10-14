@@ -154,6 +154,8 @@ export interface SessionRow {
   archived: boolean;
   title_locked: boolean;
   triage: Verdict | null;
+  /** New activity waiting to be judged once the session has been quiet until then (see judgeOrDefer). */
+  triage_due_at?: string | null;
   /** The status you set from a board; wins over `status` until the session has new activity. */
   status_override: SessionStatus | null;
   /** The Claude account it came from ("claude", "claude-work"…); accounts share one org. */

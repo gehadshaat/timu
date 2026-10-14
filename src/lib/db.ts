@@ -50,6 +50,13 @@ export function dbPath(): string {
 }
 
 /** Open (and if needed create or migrate) a database file. Exported for tests and setup. */
+/** A plain connection to an existing database file: no migrations, nothing written (live.ts watches with one). */
+export function connect(file: string): DatabaseSync {
+  const d = new sqlite.DatabaseSync(file);
+  d.exec("pragma busy_timeout = 5000;");
+  return d;
+}
+
 export function openDatabase(file: string): DatabaseSync {
   if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
   const d = new sqlite.DatabaseSync(file);

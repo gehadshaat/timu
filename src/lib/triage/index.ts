@@ -40,6 +40,39 @@ export function triageEngine(): Engine {
 
 const clip = (t: string | null, n = 600) => (t && t.length > n ? `${t.slice(0, n)}…` : t);
 
+/** A session active within this long is judged by a model only once it has been quiet this long. */
+export const TRIAGE_SETTLE_MS = 2 * 60_000;
+
+/**
+ * When a session's judgement should wait, or null to judge it now. It waits only when a model would
+ * decide (the rules can't, and the engine isn't the free status one) and it was active moments ago,
+ * say in the middle of a conversation you're having with it. Then the judge runs once, when it
+ * pauses, instead of on every sync.
+ */
+export function judgeAfter(s: TriageInput, engine: Engine, now = new Date(), staleDays = DEFAULT_STALE_DAYS): string | null {
+  if (engine === "status" || !s.last_activity_at) return null;
+  const last = Date.parse(s.last_activity_at);
+  if (!(now.getTime() - last < TRIAGE_SETTLE_MS)) return null;
+  if (ruleVerdict(s, now, staleDays)) return null;
+  return new Date(Math.min(last, now.getTime()) + TRIAGE_SETTLE_MS).toISOString();
+}
+
+/**
+ * judgeSessions for sessions with new activity, except the ones that should wait (see judgeAfter):
+ * those come back in `deferred` with the time they're due, for judgeDueSessions in src/lib/ingest.ts.
+ */
+export async function judgeOrDefer(raw: TriageInput[], now = new Date()): Promise<{ verdicts: Map<string, Verdict>; deferred: Map<string, string> }> {
+  const deferred = new Map<string, string>();
+  if (!raw.length) return { verdicts: new Map(), deferred };
+  const engine = triageEngine();
+  const staleDays = await getStaleDays();
+  for (const s of raw) {
+    const at = judgeAfter(s, engine, now, staleDays);
+    if (at) deferred.set(s.id, at);
+  }
+  return { verdicts: await judgeSessions(raw.filter((s) => !deferred.has(s.id))), deferred };
+}
+
 /**
  * Decide, per session, whether it genuinely needs the user. Rules settle the obvious cases;
  * the model decides the rest; if the model fails, fall back to the session's status.

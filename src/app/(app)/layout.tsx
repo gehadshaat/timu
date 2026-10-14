@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Nav } from "@/components/Nav";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { SyncButton } from "@/components/SyncButton";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { ToastProvider } from "@/components/ui/Toaster";
+import { syncStatus } from "@/lib/auto-sync";
 import { getNav } from "@/lib/home";
 import { isSetupComplete } from "@/lib/organize";
 
@@ -28,13 +30,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
             <Nav counts={counts} tree={tree} />
             <div className="mt-auto hidden md:block">
-              <SyncButton />
+              <SyncButton status={syncStatus()} />
             </div>
           </div>
         </aside>
         <main className="min-w-0 flex-1 pb-24">{children}</main>
       </div>
       <CommandPalette />
+      <LiveRefresh />
     </ToastProvider>
   );
 }

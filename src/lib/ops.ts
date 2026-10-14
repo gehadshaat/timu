@@ -2,6 +2,7 @@ import "server-only";
 import { all, get, insert, now, run, setSetting, tx, update } from "./db";
 import { uniqueSlug } from "./slugs";
 import { importCloudFromApi, importLocal } from "./importers";
+import { judgeDueSessions, type IngestResult } from "./ingest";
 import { startOrganize } from "./organize";
 import { describeRoutines, importRoutinesFromApi } from "./routines";
 import { ClaudeAuthError } from "./claude-auth";
@@ -10,7 +11,6 @@ import { THEMES, themeForSlug } from "./themes";
 import { getMemory, judgeSessions, saveMemory, STALE_KEY } from "./triage";
 import { DEFAULT_MEMORY, type MemoryItem } from "./triage/memory";
 import type { Priority } from "./types";
-import type { IngestResult } from "./ingest";
 
 /**
  * Everything you can change in Timu. The UI's server actions (src/app/actions.ts) and the
@@ -37,8 +37,12 @@ function found<T>(row: T | null, what: string): T {
 /** A teammate with their team's project. */
 const AGENT_WITH_PROJECT = "select a.id, a.team_id, t.project_id from agents a join teams t on t.id = a.team_id where a.id = ?";
 
-/** Pull from every source that's configured, then file new sessions into the org. */
-export async function syncAll(): Promise<ActionResult> {
+/**
+ * Pull from every source that's configured, judge sessions that have gone quiet, then file new sessions
+ * into the org. `cloud: false` skips the cloud pulls (timed syncs read local transcripts more often).
+ * Run it through syncNow (src/lib/auto-sync.ts), which keeps two syncs from overlapping.
+ */
+export async function syncAll(opts: { cloud?: boolean } = {}): Promise<ActionResult> {
   const messages: string[] = [];
   const errors: string[] = [];
   const run = async (label: string, fn: () => Promise<IngestResult>) => {
@@ -48,8 +52,8 @@ export async function syncAll(): Promise<ActionResult> {
       errors.push(`${label}: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
-  await run("Local", importLocal);
-  if (cloudConfigFromEnv()) {
+  await run("Local", () => importLocal({ onlyChanged: true }));
+  if (opts.cloud !== false && cloudConfigFromEnv()) {
     try {
       messages.push(describe(await importCloudFromApi(), "Cloud"));
       // Routines use the same login; a failure here never blocks the sessions sync.
@@ -62,6 +66,13 @@ export async function syncAll(): Promise<ActionResult> {
       // A rejected login fails both pulls the same way; say it once.
       errors.push(`${err instanceof ClaudeAuthError ? "Claude" : "Cloud"}: ${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+  // Sessions you were active in a moment ago were left unjudged (see judgeOrDefer); judge the quiet ones.
+  try {
+    const opened = await judgeDueSessions();
+    if (opened) messages.push(`${opened} more need${opened === 1 ? "s" : ""} you`);
+  } catch (err) {
+    errors.push(`Triage: ${err instanceof Error ? err.message : String(err)}`);
   }
   await startOrganize("incremental");
   const text = [...messages, ...errors].join(" · ") || "Nothing to sync.";

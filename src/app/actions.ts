@@ -10,6 +10,7 @@ import {
 import { applyDraft, startOrganize, type OrganizeJob } from "@/lib/organize";
 import { ProposalSchema } from "@/lib/classify/schema";
 import * as ops from "@/lib/ops";
+import { syncNow } from "@/lib/auto-sync";
 import { describeArtifacts, importArtifacts, moveArtifact } from "@/lib/artifacts";
 import { describeRoutines, importRoutinesFromApi, importRoutinesFromJson } from "@/lib/routines";
 import type { ActionResult, EntityKind, EntityValues, GoalInput, SessionFate, TodoInput } from "@/lib/ops";
@@ -129,7 +130,7 @@ export async function applyProposalAction(id: string, bodyJson: string): Promise
 
 /** Pull from every source that's configured, then file new sessions into the org. */
 export async function syncAllAction(): Promise<ActionResult> {
-  return refreshing(ops.syncAll());
+  return refreshing(syncNow());
 }
 
 /** Wipe the org (keeps imported sessions) so setup can run again. */

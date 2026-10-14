@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { importCloudFromJson } from "../../importers";
 import * as ops from "../../ops";
+import { syncNow } from "../../auto-sync";
 import { startOrganize } from "../../organize";
 import { getOrg } from "../../queries";
 import { getMemory } from "../../triage";
@@ -98,10 +99,10 @@ export function registerSessionTools(server: McpServer): void {
       title: "Sync sessions",
       kind: "write",
       description:
-        "Pull new activity from every configured source (local Claude Code transcripts, and cloud sessions when a token is set), then start the organiser to file new sessions. Returns what was imported.",
+        "Pull new activity from every configured source (local Claude Code transcripts, and cloud sessions when a token is set), then start the organiser to file new sessions. Returns what was imported. Timu already does this by itself (by default every minute, cloud every 5; see get_settings → auto_sync), so call it only when you need the latest right now.",
       input: z.object({}),
     },
-    async () => expectOk(await ops.syncAll()).message,
+    async () => expectOk(await syncNow()).message,
   );
 
   defineTool(
@@ -132,10 +133,13 @@ export function registerSessionTools(server: McpServer): void {
       title: "Run the organiser",
       kind: "write",
       description:
-        "Start Timu's organiser in the background: it files every unclassified session into the existing org (hiring teammates only when nothing fits) and raises asks. Poll get_settings → organize_job for progress. To place sessions yourself, use assign_sessions instead.",
+        "Start Timu's organiser in the background: it files every unclassified session into the existing org (hiring teammates only when nothing fits) and raises asks. A filed session with new activity is filed again once it has been quiet for 10 minutes. Poll get_settings → organize_job for progress. To place sessions yourself, use assign_sessions instead.",
       input: z.object({}),
     },
-    async () => ({ message: "Organiser started.", job: await startOrganize("incremental") }),
+    async () => {
+      const job = await startOrganize("incremental");
+      return { message: job.state === "running" ? "Organiser started." : "Nothing is waiting to be filed.", job };
+    },
   );
 
   // ---------- triage ----------

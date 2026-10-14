@@ -66,6 +66,8 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `src/lib/types.ts` | Row types (`SessionRow`, `TaskRow`, `GoalRow`…). Keep in step with the schema. |
 | `src/lib/queries.ts` | Read models for pages: `getOrg`, `getSessions` (`SESSION_LIST_COLUMNS`), `getGoals`, `getTodos`, `getInbox`, `getOffice`… |
 | `src/lib/ops.ts` | Single-item writes (`ActionResult`), `syncAll`. |
+| `src/lib/auto-sync.ts`, `src/instrumentation.ts` | The timed sync: started with the server, `syncNow` serialises every sync (timer, button, MCP), `syncStatus` for the UI. |
+| `src/lib/live.ts`, `src/app/api/events/route.ts`, `components/LiveRefresh.tsx` | Live pages: a watcher polls `PRAGMA data_version`, `/api/events` streams `change`/`sync` (SSE), open tabs `router.refresh()`. |
 | `src/lib/bulk.ts` | Many-item writes. Each returns a `BulkResult` with an `UndoSnapshot`; `applyUndo` restores it. |
 | `src/lib/ingest.ts` | Upserts imported sessions, runs triage, opens/closes asks, links artifacts. |
 | `src/lib/sources/*.ts` | One parser per source: `local` (transcripts), `cloud`, `claudeai`, `routines`, `artifacts`. Pure functions → easy to test. |
@@ -97,6 +99,15 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 - After adding a column, update `types.ts`, any `*_COLUMNS` list that should carry it, and `session-lite.ts`
   if boards need it.
 - Restart the dev server after adding a migration — the connection migrates only when it opens.
+
+### Syncs and live pages
+- Syncs run on a timer (`auto-sync.ts`), and **every write refreshes every open page** (`live.ts` watches the database
+  file). So a write path that runs on each sync must write nothing when nothing changed: compare before you upsert
+  (see `ingestSessions`, `saveRoutines`), and don't record runs or timestamps that changed nothing.
+- Anything that calls a model on each sync waits for the session to pause (`judgeOrDefer` / `triage_due_at`,
+  `REFILE_QUIET_MS`), so a conversation in progress doesn't cost a call per sync.
+- Server state shared between the instrumentation bundle and the app bundle lives on `globalThis` (Next loads the
+  module twice).
 
 ### Writes, undo and the toast
 - Bulk-style writes live in `src/lib/bulk.ts` and return an `UndoSnapshot`; the UI runs them through
