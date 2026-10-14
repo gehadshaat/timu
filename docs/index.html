@@ -287,20 +287,19 @@
     <div class="wrap install">
       <div>
         <span class="kicker">INSTALL · THERE IS ONLY ONE WAY</span>
-        <h2>Four commands. Then open your browser.</h2>
+        <h2>Clone it, then one command.</h2>
         <p class="sub">No database server, no Docker, no cloud account. Timu keeps everything in one SQLite file on your machine.</p>
         <div class="win term">
           <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">~/ — bash</span><button class="copy" type="button" id="copy">copy</button></div>
 <pre id="cmds"><span class="p">$ </span>git clone https://github.com/gehadshaat/timu.git
-<span class="p">$ </span>cd Timu
-<span class="p">$ </span>npm run setup   <span class="c"># installs + writes .env.local</span>
-<span class="p">$ </span>npm run dev     <span class="c"># → http://localhost:3100</span></pre>
+<span class="p">$ </span>cd timu
+<span class="p">$ </span>npm start   <span class="c"># installs, builds, serves → localhost:3100</span></pre>
         </div>
       </div>
       <ul class="need" aria-label="What you need">
         <li><span class="px">22</span><div><b>Node 22.16 or newer</b><p>For its built-in SQLite. Check with <code>node -v</code>.</p></div></li>
         <li><span class="px">✳</span><div><b>Claude Code, signed in</b><p>Timu borrows its login to pull your cloud sessions and routines, and reads its local transcripts. Nothing to copy or paste — and it stays signed in as Claude Code refreshes.</p></div></li>
-        <li><span class="px">+</span><div><b>Claude Code, signed in</b><p>No API key. Timu asks Claude through <code>claude -p</code> on your own login to file sessions and judge what really needs you; without the CLI, Timu uses rules.</p></div></li>
+        <li><span class="px">+</span><div><b>No API key</b><p>Timu asks Claude through <code>claude -p</code> on your own login to file sessions and judge what really needs you; without the CLI, Timu uses rules.</p></div></li>
         <li><span class="px">2</span><div><b>Two Claude accounts?</b><p>Sign in with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu finds it and files both into the same companies.</p></div></li>
       </ul>
     </div>

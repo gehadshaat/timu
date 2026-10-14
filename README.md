@@ -23,12 +23,13 @@ You need **Node 22.16 or newer**. To pull in your sessions, you also need **Clau
 
 ```bash
 git clone https://github.com/gehadshaat/timu.git
-cd Timu
-npm run setup     # installs everything and writes .env.local (safe to re-run)
-npm run dev       # open http://localhost:3100
+cd timu
+npm start         # installs, writes .env.local, builds, then serves http://localhost:3100
 ```
 
-That's the only install. There's no API key to paste: Timu asks Claude through the Claude Code CLI (`claude -p`) on the login you already have, to file sessions and judge what needs you. Without the CLI, Timu uses rules instead.
+That's the only install, and `npm start` is also how you run Timu from then on. The first time, it installs the dependencies, writes `.env.local` with generated tokens, and builds the app (about half a minute). Then it serves Timu at http://localhost:3100. Later runs start in a second, and rebuild by themselves after a `git pull`. It's safe to re-run, and `PORT=4000 npm start` picks another port.
+
+There's no API key to paste: Timu asks Claude through the Claude Code CLI (`claude -p`) on the login you already have, to file sessions and judge what needs you. Without the CLI, Timu uses rules instead.
 
 > **Signing in to Claude is automatic.** Timu borrows the login Claude Code already has (`~/.claude/.credentials.json`) and re-reads it on every sync, so there's no token to copy. If it ever expires, Settings tells you to run `claude`, and the next sync picks it up. More than one Claude account? Sign in with `CLAUDE_CONFIG_DIR=~/.claude-work claude`, and Timu syncs both into the same companies and projects.
 
@@ -148,15 +149,15 @@ Everything the UI does in bulk works over MCP too: handle many asks at once, mov
 
 `get_org`, `get_project`, `get_teammate` and `get_session` include the related artifacts.
 
-`npm run setup` (or `npm run dev`) generates `TIMU_MCP_TOKEN` in `.env.local`. **Settings → Let Claude run Timu** shows the commands below with your URL filled in.
+`npm start` (or `npm run dev`) generates `TIMU_MCP_TOKEN` in `.env.local`. **Settings → Let Claude run Timu** shows the commands below with your URL filled in.
 
-**Claude Code, while `npm run dev` is running:**
+**Claude Code, while Timu is running:**
 
 ```bash
 claude mcp add --transport http timu http://localhost:3100/api/mcp --header "Authorization: Bearer <TIMU_MCP_TOKEN>"
 ```
 
-Replace `<TIMU_MCP_TOKEN>` with the value from `.env.local`. `npm run setup` prints this command with the token filled in.
+Replace `<TIMU_MCP_TOKEN>` with the value from `.env.local`. `npm start` prints this command with the token filled in.
 
 **Claude Code or Claude Desktop on the same machine, without the web app.** This runs over stdio and opens the database file directly:
 
@@ -210,7 +211,7 @@ See [`mod/README.md`](mod/README.md) for what it shows, how it files, and how to
 
 Timu keeps its data in one SQLite file, so host it somewhere with a persistent disk (a VM, Fly.io or Railway with a volume), not a serverless platform:
 
-1. Deploy with `npm run build && npm start`, with `TIMU_DB_PATH` on the persistent volume. Set the same env vars, plus `TIMU_PASSWORD` to turn on the login gate.
+1. Deploy with `npm start` (it builds on first run), with `TIMU_DB_PATH` on the persistent volume. Set the same env vars, plus `TIMU_PASSWORD` to turn on the login gate.
 2. The hosted app can't read your disk, so run `TIMU_URL=https://your-timu… TIMU_INGEST_TOKEN=… npm run sync:local` (cron it if you like). Point the Chrome extension at the hosted URL.
 3. Filing and triage need the Claude CLI on the server. Install Claude Code there and sign in once (or set `CLAUDE_CLI` to its path); otherwise the hosted Timu uses rules.
 
@@ -226,6 +227,8 @@ The project site is plain HTML in `docs/`, with the screenshots in `docs/images/
 
 The screenshots come from a demo workspace (Sunbeam Co and Duckworks), not real data. Retake them whenever the UI changes.
 
+
+Work on Timu with `npm run dev` (hot reload, at http://localhost:3100). `npm start` serves a production build instead; after changing code without committing, run `npm start -- --rebuild`.
 
 ```bash
 npm test          # vitest: parsers, status mapping, organiser, task/pose logic

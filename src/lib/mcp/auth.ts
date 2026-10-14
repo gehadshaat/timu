@@ -9,7 +9,7 @@ export function checkMcpToken(req: Request): Response | null {
   const expected = process.env.TIMU_MCP_TOKEN?.trim();
   if (!expected) {
     return Response.json(
-      { error: "TIMU_MCP_TOKEN is not set on the Timu server. Run `npm run setup` (or add it to .env.local) and restart Timu." },
+      { error: "TIMU_MCP_TOKEN is not set on the Timu server. Restart Timu with `npm start` (it writes one to .env.local), or add it yourself." },
       { status: 503 },
     );
   }

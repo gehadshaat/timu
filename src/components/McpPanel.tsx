@@ -44,7 +44,7 @@ export function McpPanel({ tokenSet, repoDir }: { tokenSet: boolean; repoDir: st
         </>
       ) : (
         <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
-          Set <code>TIMU_MCP_TOKEN</code> in .env.local (<code>npm run dev</code> generates one) and restart Timu to turn on the MCP endpoint.
+          Set <code>TIMU_MCP_TOKEN</code> in .env.local (<code>npm start</code> generates one) and restart Timu to turn on the MCP endpoint.
         </p>
       )}
     </section>
