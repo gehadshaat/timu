@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Character } from "@/components/Character";
+import { RecentSessions } from "@/components/home/RecentSessions";
 import { CompanySection } from "@/components/home/Structure";
 import { getHome } from "@/lib/home";
+import { getSessions, orgOptions } from "@/lib/queries";
 import { POSE_LABEL } from "@/lib/avatar";
 
 export default async function HomePage() {
-  const home = await getHome();
+  const [home, recent] = await Promise.all([getHome(), getSessions({ limit: 3 })]);
   const { totals: t } = home;
   const now = Date.now();
   const hour = new Date(now).getHours();
@@ -13,7 +15,12 @@ export default async function HomePage() {
   const companies = home.companies.filter((c) => c.company);
   const loose = home.companies.find((c) => !c.company);
   const asksByProject: Record<string, string[]> = {};
-  for (const it of home.inbox) if (it.project) (asksByProject[it.project.id] ??= []).push(it.task.id);
+  const askBySession: Record<string, string> = {};
+  for (const it of home.inbox) {
+    if (it.project) (asksByProject[it.project.id] ??= []).push(it.task.id);
+    askBySession[it.session.id] ??= it.task.id;
+  }
+  const goalTitles = Object.fromEntries(home.org.goals.map((g) => [g.id, g.title]));
 
   return (
     <div className="space-y-6">
@@ -49,6 +56,8 @@ export default async function HomePage() {
           ))}
         </div>
       </header>
+
+      <RecentSessions sessions={recent} options={orgOptions(home.org)} asks={askBySession} goals={goalTitles} />
 
       <div className="min-w-0 space-y-5">
         {companies.map((c) => (
