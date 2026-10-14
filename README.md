@@ -185,6 +185,16 @@ Notes:
 - **Safety hints:** read-only tools are marked read-only and deletes are marked destructive, so clients can ask before running them. There is no "reset everything" tool.
 - **Assignments stick:** a session you or Claude assign to a teammate counts as filed, so the next sync won't move it.
 
+## Timu inside Claude Code (mod)
+
+`mod/` is a lighter Timu that runs inside Claude Code itself, with no web app or database: a board pane (`/timu`) with your sessions filed under company → project → teammate and **Needs you** on top, a band above the prompt when something waits on you, this session's teammate in the status line, `/timu-file Company > Project / Goal`, and `board`, `handle_ask` and `file_session` tools so Claude can answer "what needs me?". It reads your local transcripts, and your cloud sessions when it runs in one, and files them with the same rules as the organiser below.
+
+```bash
+claude --plugin-dir mod
+```
+
+See [`mod/README.md`](mod/README.md) for what it shows, how it files, and how to test it.
+
 ## How organising works
 
 - **With the Claude CLI** (Claude Code installed and signed in):

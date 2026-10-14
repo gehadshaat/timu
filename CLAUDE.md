@@ -82,6 +82,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `docs/` | The GitHub Pages site (`index.html`) and the README/site screenshots (`docs/images/`). |
 | `scripts/setup.mjs` | One-command setup. Plain Node, no deps, safe to re-run, never fails `npm run dev`. |
 | `extension/` | Chrome extension that syncs claude.ai chats to `/api/ingest/claude-ai`. |
+| `mod/` | Timu as a Claude Code mod: a board pane, a "needs you" band, `/timu` and `/timu-file`, and tools for Claude, in a hooks module. Its filing (`mod/hooks/org.ts`) ports `sources/local.ts`, `sources/cloud.ts`, `classify/heuristic.ts` and `triage/rules.ts`: keep them in step. Tested with `claude plugin test mod`; left out of the app's `tsconfig.json` and ESLint. |
 
 ---
 
