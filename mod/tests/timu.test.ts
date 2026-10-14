@@ -42,8 +42,8 @@ const PANE_PROPS = { title: '🐝 Timu', isFocused: false, bodyColumns: 100, pla
 const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
 /** Everything beneath the mod: a disk, a cloud, a clipboard, a status line. */
-function world(on: On) {
-  const said = { statuses: [] as (string | undefined)[], toasts: [] as string[], copied: [] as string[], opened: [] as string[] }
+function world(on: On, opts: { hasCloud?: boolean; cloudFails?: boolean } = { hasCloud: true }) {
+  const said = { statuses: [] as (string | undefined)[], toasts: [] as string[], copied: [] as string[], opened: [] as string[], cloudCalls: [] as unknown[] }
   mock.store(on)
   mock.clock(on, { now: NOW })
   mock.env(on, { HOME: '/demo-home' })
@@ -60,10 +60,17 @@ function world(on: On) {
       ? { exitCode: 0, stdout: 'git@github.com:sunbeam-co/sunbeam-web.git\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
       : { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
   }))
-  on('mcp.call', ($, e) =>
-    e.server === 'claude-code-remote' && e.tool === 'list_sessions'
-      ? { value: { content: [{ type: 'text', text: `<other-session nonce="n">\n${JSON.stringify(CLOUD)}\n</other-session>` }], isError: false } }
-      : { deny: 'no such server' })
+  // The cloud answers 10 sessions a page; the second page is asked for by the first's last id.
+  on('tool.list', () => ({ value: opts.hasCloud ? [{ name: 'mcp__claude-code-remote__list_sessions', description: 'List sessions', mcp: true }] : [] }))
+  on('mcp.call', ($, e) => {
+    said.cloudCalls.push(e.args)
+    if (opts.cloudFails) return { value: { content: [{ type: 'text', text: 'Output too large; saved to a file' }], isError: false } }
+    const [first, archived] = CLOUD.ccr.data
+    const page = e.args.after_id === 'session_01DUCK'
+      ? { ccr: { data: [archived], has_more: false } }
+      : { ccr: { data: [first], has_more: true, last_id: 'session_01DUCK' } }
+    return { value: { content: [{ type: 'text', text: `<other-session nonce="n">\n${JSON.stringify(page)}\n</other-session>` }], isError: false } }
+  })
   on('session.id', () => ({ value: 'here-1' }))
   on('session.repo', () => ({ value: null }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -162,4 +169,25 @@ test('Claude can clear an ask and file a session', async ($, on) => {
   expect(filed.text).toMatch(/^Filed "Plan the launch" under Sunbeam Co \/ Launch, goal "Ship v2" \(\w+, /)
   const moved = toolText(await $.tool.call({ tool: 'mcp__timu__file_session', session: 'bbbb-2', project: 'Launch' }))
   expect(moved).toMatch(/^Filed "Improve SEO meta tags" under Sunbeam Co \/ Launch \(\w+, SEO Lead\)\.$/)
+})
+
+test('cloud sessions come in pages; without the cloud server it says nothing', async ($, on) => {
+  const said = world(on)
+  await start($)
+  expect(said.cloudCalls).toEqual([{ limit: 10 }, { limit: 10, after_id: 'session_01DUCK' }])
+})
+
+test('local only: no cloud server, no cloud calls and no note', async ($, on) => {
+  const said = world(on, {})
+  const synced = await start($)
+  expect(synced.text).toBe('Timu synced: 1 need you · 0 working · 3 sessions in 1 projects.')
+  expect(said.cloudCalls).toEqual([])
+  expect(toolText(await $.tool.call({ tool: 'mcp__timu__board' }))).not.toContain('Cloud sessions:')
+})
+
+test('a cloud answer it cannot read shows why, and the local board still works', async ($, on) => {
+  world(on, { hasCloud: true, cloudFails: true })
+  const synced = await start($)
+  expect(synced.text).toBe('Timu synced: 1 need you · 0 working · 3 sessions in 1 projects.')
+  expect(toolText(await $.tool.call({ tool: 'mcp__timu__board' }))).toContain("(Cloud sessions: could not read list_sessions' answer (33 characters))")
 })

@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 
 import type { Board, Row, Status, View } from '../types'
-import { ago, asksOf, boardText, clip, fileSessions, idKey, parseFiling, repoFromUrl, sortRows, summaryLine, type Filing, type Session } from './org'
+import { ago, agoText, asksOf, boardText, clip, fileSessions, idKey, parseFiling, repoFromUrl, sortRows, summaryLine, type Filing, type Session } from './org'
 import { hereIds, lookUpOwners, scanCloud, scanLocal, type ParseCache } from './scan'
 
 /**
@@ -30,7 +30,7 @@ type Undo = { label: string; id: string; handled: string | null; snoozed: number
 /** What the last scan found. A reload starts it over and scans again at `session.start`. */
 const mem = {
   days: 14,
-  isCloudReachable: true,
+  includeCloud: true,
   cache: new Map() as ParseCache,
   sessions: [] as Session[],
   notes: [] as string[],
@@ -89,15 +89,17 @@ async function scanOnce($: $): Promise<Board> {
   const now = await $.clock.now()
   const local = await scanLocal($, { days: mem.days, now, cache: mem.cache })
     .catch(() => ({ sessions: [] as Session[], notes: ['Could not read local transcripts'] }))
-  const cloud = mem.isCloudReachable ? await scanCloud($) : null
-  if (cloud === null) mem.isCloudReachable = false
+  // A failed call says why on the board, and is tried again at the next scan.
   const since = new Date(now - mem.days * 86_400_000).toISOString()
+  const cloud = mem.includeCloud ? await scanCloud($, since) : null
+  const cloudNote = cloud && 'reason' in cloud ? [`Cloud sessions: ${cloud.reason}`] : []
   const known = await stored<Record<string, string | null>>($, 'owners', {})
   const folders = [...new Set(local.sessions.map(s => s.folder).filter((f): f is string => !!f))]
   const found = await lookUpOwners($, folders, known)
   if (Object.keys(found).length) await $.store.set('owners', { ...known, ...found })
-  mem.sessions = [...local.sessions, ...(cloud ?? []).filter(s => !s.isArchived && (s.lastAt ?? '') >= since)]
-  mem.notes = local.notes
+  const fromCloud = cloud && 'sessions' in cloud ? cloud.sessions : []
+  mem.sessions = [...local.sessions, ...fromCloud.filter(s => !s.isArchived && (s.lastAt ?? '') >= since)]
+  mem.notes = [...local.notes, ...cloudNote]
   mem.scannedAt = now
   return refile($)
 }
@@ -198,7 +200,7 @@ async function openBoard($: $, which?: View) {
 
 export const register: Register = (on, options) => {
   mem.days = Math.max(1, Number(options.days ?? 14) || 14)
-  mem.isCloudReachable = options.cloud !== false
+  mem.includeCloud = options.cloud !== false
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -393,7 +395,7 @@ export const register: Register = (on, options) => {
         })}
         {which === 'all' && rows.length === 0 && <Text dimColor>No sessions in the last {mem.days} days.</Text>}
         <Text dimColor wrap="truncate">
-          Press a session to copy how to open it · /timu-file files this one · updated {ago(new Date(b.scannedAt).toISOString(), now)} ago
+          Press a session to copy how to open it · /timu-file files this one · updated {agoText(new Date(b.scannedAt).toISOString(), now)}
         </Text>
       </Box>
     )

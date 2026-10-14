@@ -1,6 +1,6 @@
 import type { EngineInterface } from 'claude-code'
 
-import { idKey, mapCloudSession, parseCloudList, parseTranscript, repoFromUrl, type Session } from './org'
+import { idKey, mapCloudSession, parseCloudList, parseTranscript, repoFromUrl, type CloudRecord, type Session } from './org'
 
 /** What one transcript parsed to, kept while its file is unchanged. */
 export type ParseCache = Map<string, { stamp: string; session: Session | null }>
@@ -10,6 +10,9 @@ const DAY = 86_400_000
 const MAX_LOCAL = 80
 /** `$.fs.read` takes up to 4 MiB; a larger transcript is read as its head and tail. */
 const WHOLE_READ_LIMIT = 3_500_000
+/** Cloud sessions per `list_sessions` call, and the most calls per scan. */
+const CLOUD_PAGE = 10
+const CLOUD_PAGES = 5
 
 /** Where Claude Code keeps local transcripts: CLAUDE_PROJECTS_DIR, else <config dir>/projects. */
 async function projectsDir($: EngineInterface): Promise<string | null> {
@@ -74,13 +77,42 @@ export async function scanLocal($: EngineInterface, opts: { days: number; now: n
 
 /**
  * Your claude.ai/code sessions, through the `claude-code-remote` server's
- * `list_sessions` tool; null where this session has no such server.
+ * `list_sessions` tool, or why they could not be read (the call failed, or
+ * its answer did not parse); null where this session has no such server.
  */
-export async function scanCloud($: EngineInterface): Promise<Session[] | null> {
-  const listed = await $.mcp.call('claude-code-remote', 'list_sessions', { limit: 50 }).catch(() => null)
-  if (!listed || listed.isError) return null
-  const text = listed.content.filter(b => b.type === 'text').map(b => b.text ?? '').join('\n')
-  return parseCloudList(text).map(mapCloudSession)
+export async function scanCloud($: EngineInterface, since: string): Promise<{ sessions: Session[] } | { reason: string } | null> {
+  // Only a cloud session has this server; anywhere else there is nothing to read and nothing to say.
+  const tools = await $.tool.list().catch(() => [])
+  if (!tools.some(t => t.name === 'mcp__claude-code-remote__list_sessions')) return null
+  const records: CloudRecord[] = []
+  let after: string | null = null
+  // Small pages: a long answer is cut or set aside by the engine, and its JSON no longer parses.
+  for (let page = 0; page < CLOUD_PAGES; page++) {
+    const failed = (reason: string) => (records.length ? null : { reason: reason.slice(0, 200) })
+    let listed: Awaited<ReturnType<EngineInterface['mcp']['call']>>
+    try {
+      listed = await $.mcp.call('claude-code-remote', 'list_sessions', after ? { limit: CLOUD_PAGE, after_id: after } : { limit: CLOUD_PAGE })
+    } catch (err) {
+      const stop = failed(String(err instanceof Error ? err.message : err))
+      if (stop) return stop
+      break
+    }
+    const text = listed.content.filter(b => b.type === 'text').map(b => b.text ?? '').join('\n')
+    let parsed = listed.isError ? null : parseCloudList(text)
+    // A server that declares an output schema answers in structuredContent too.
+    if (parsed && !parsed.records.length && listed.structuredContent !== undefined) parsed = parseCloudList(JSON.stringify(listed.structuredContent))
+    if (!parsed || (!parsed.records.length && !/"data"\s*:\s*\[\s*\]/.test(text))) {
+      const stop = failed(listed.isError ? `list_sessions failed: ${text}` : `could not read list_sessions' answer (${text.length} characters)`)
+      if (stop) return stop
+      break
+    }
+    records.push(...parsed.records)
+    // Pages run newest first: once a whole page is older than the window, the rest are too.
+    const isOld = parsed.records.every(r => (r.updated_at ?? r.created_at ?? '') < since)
+    if (!parsed.hasMore || !parsed.lastId || isOld) break
+    after = parsed.lastId
+  }
+  return { sessions: records.map(mapCloudSession) }
 }
 
 /** `owner/name` of each folder's git remote, for the folders not looked up yet. */
@@ -103,3 +135,4 @@ export async function hereIds($: EngineInterface): Promise<string[]> {
   if (remote) ids.push(`session_${idKey(remote)}`)
   return ids
 }
+

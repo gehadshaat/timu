@@ -231,29 +231,36 @@ export function mapCloudSession(rec: CloudRecord): Session {
   }
 }
 
-/** The `list_sessions` tool's text: `{ccr: {data}}`, `{data}` or an array, possibly inside an envelope. */
-export function parseCloudList(text: string): CloudRecord[] {
+export type CloudPage = { records: CloudRecord[]; hasMore: boolean; lastId: string | null }
+
+/** One page of the `list_sessions` tool's text: `{ccr: {data, has_more, last_id}}`, `{data}` or an array, possibly inside an envelope. */
+export function parseCloudList(text: string): CloudPage {
+  const none: CloudPage = { records: [], hasMore: false, lastId: null }
   const start = text.search(/[[{]/)
   const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'))
-  if (start < 0 || end < start) return []
+  if (start < 0 || end < start) return none
   let payload: unknown
   try {
     payload = JSON.parse(text.slice(start, end + 1))
   } catch {
-    return []
+    return none
   }
-  const records = (v: unknown): unknown[] => {
-    if (Array.isArray(v)) return v
+  const page = (v: unknown): { data: unknown[]; hasMore: boolean; lastId: string | null } => {
+    if (Array.isArray(v)) return { data: v, hasMore: false, lastId: null }
     if (v && typeof v === 'object') {
       const o = v as Record<string, unknown>
-      if (o.ccr) return records(o.ccr)
-      if (Array.isArray(o.data)) return o.data
+      if (o.ccr) return page(o.ccr)
+      if (Array.isArray(o.data)) {
+        return { data: o.data, hasMore: o.has_more === true, lastId: typeof o.last_id === 'string' ? o.last_id : null }
+      }
     }
-    return []
+    return { data: [], hasMore: false, lastId: null }
   }
-  return records(payload).filter((r): r is CloudRecord =>
+  const { data, hasMore, lastId } = page(payload)
+  const records = data.filter((r): r is CloudRecord =>
     !!r && typeof r === 'object' && typeof (r as { id?: unknown }).id === 'string' &&
     (r as { id: string }).id.startsWith('session_'))
+  return { records, hasMore, lastId }
 }
 
 type Discipline = { team: string; role: string; emoji: string; words: RegExp }
@@ -387,6 +394,12 @@ export function ago(iso: string | null, now: number): string {
   return `${Math.floor(ms / DAY)}d`
 }
 
+/** "5m ago", "just now": `ago` for a sentence. */
+export function agoText(iso: string | null, now: number): string {
+  const a = ago(iso, now)
+  return a === 'now' ? 'just now' : a ? `${a} ago` : ''
+}
+
 /** `[Company >] Project [/ Goal]`, the argument of /timu-file. */
 export function parseFiling(args: string): { company?: string; project?: string; goal?: string } {
   const [left, ...goalParts] = args.split('/')
@@ -406,11 +419,11 @@ export function boardText(board: Board, now: number, opts: { asksOnly?: boolean;
   const match = (r: Row) => !opts.project || r.project.toLowerCase() === opts.project.toLowerCase()
   const rows = board.rows.filter(match)
   const asks = asksOf(rows)
-  const lines: string[] = [summaryLine(board.rows)]
+  const lines: string[] = [summaryLine(board.rows), ...board.notes.map(n => `(${n})`)]
   if (asks.length) {
     lines.push('', 'Needs you:')
     for (const r of asks) {
-      lines.push(`- [${r.ask!.kind}] ${r.teammate.name} (${r.project}): ${r.ask!.text} — "${r.title}" ${ago(r.lastAt, now)} ago · id ${r.id} · open: ${r.open}`)
+      lines.push(`- [${r.ask!.kind}] ${r.teammate.name} (${r.project}): ${r.ask!.text} — "${r.title}" ${agoText(r.lastAt, now)} · id ${r.id} · open: ${r.open}`)
     }
   } else lines.push('', 'Nothing needs you.')
   if (!opts.asksOnly) {

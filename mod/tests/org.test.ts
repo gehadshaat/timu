@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   boardText, fileSessions, looksLikeQuestion, mapCloudSession, parseCloudList, parseFiling, parseTranscript,
-  repoFromUrl, type FileInput, type Session,
+  repoFromUrl, agoText, type FileInput, type Session,
 } from '../hooks/org'
 
 const NOW = Date.parse('2026-10-14T12:00:00Z')
@@ -77,8 +77,10 @@ describe('cloud sessions', () => {
 
   test('the list tool\'s text is read through its envelope', () => {
     const text = `<other-session nonce="x">\nData:\n${JSON.stringify({ ccr: { data: [{ id: 'session_01A' }, { id: 'nope' }] } })}\n</other-session>`
-    expect(parseCloudList(text).map(r => r.id)).toEqual(['session_01A'])
-    expect(parseCloudList('no json here')).toEqual([])
+    expect(parseCloudList(text)).toEqual({ records: [{ id: 'session_01A' }], hasMore: false, lastId: null })
+    const page = JSON.stringify({ ccr: { data: [{ id: 'session_01B' }], has_more: true, last_id: 'session_01B' } })
+    expect(parseCloudList(page)).toEqual({ records: [{ id: 'session_01B' }], hasMore: true, lastId: 'session_01B' })
+    expect(parseCloudList('no json here').records).toEqual([])
   })
 
   test('remotes name their repository', () => {
@@ -149,4 +151,10 @@ test('/timu-file arguments', () => {
   expect(parseFiling('Procurement App')).toEqual({ project: 'Procurement App' })
   expect(parseFiling(' / Ship v2')).toEqual({ goal: 'Ship v2' })
   expect(parseFiling('')).toEqual({})
+})
+
+test('ages read as words', () => {
+  expect(agoText('2026-10-14T11:59:30Z', NOW)).toBe('just now')
+  expect(agoText('2026-10-14T10:00:00Z', NOW)).toBe('2h ago')
+  expect(agoText(null, NOW)).toBe('')
 })

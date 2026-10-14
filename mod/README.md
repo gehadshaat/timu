@@ -14,7 +14,7 @@ The Timu idea, inside Claude Code itself: every Claude session you have is filed
 ## Where the sessions come from
 
 - **Claude Code on this machine:** `~/.claude/projects/*/*.jsonl` (or `CLAUDE_PROJECTS_DIR`, or `$CLAUDE_CONFIG_DIR/projects`), the newest 80 with activity in the last 14 days. A session is **working** while its transcript is still being written mid-turn, and **needs you** when its last reply ends on a question, using Timu's own rules.
-- **claude.ai/code cloud sessions:** inside a cloud session, through the `claude-code-remote` server's `list_sessions` tool, with the session's own status (blocked, review-ready, failed) and its "needs action" line. Archived sessions are left out. Elsewhere this source is skipped.
+- **claude.ai/code cloud sessions:** inside a cloud session, through the `claude-code-remote` server's `list_sessions` tool (10 at a time), with the session's own status (blocked, review-ready, failed) and its "needs action" line. Archived sessions are left out. If the list can't be read, the board says why. On your own machine there is no such server, so this source is skipped quietly.
 - **This session** is on the board, marked *here*, but never raises an ask: you're already looking at it.
 
 ## How filing works
@@ -36,9 +36,17 @@ From this repository:
 claude --plugin-dir mod
 ```
 
-Then type `/timu`.
+Then:
 
-Options (`/config`, or `pluginConfigs.timu.options` in settings): **Days to look back** (default 14) and **Include cloud sessions** (default on).
+1. Type `/timu`. The board opens: docked beside the conversation in the fullscreen layout, or above the prompt otherwise.
+2. Press **Done** or **Snooze 4h** on an ask, then **Undo**. Press a session row to copy its `claude --resume` command.
+3. If something needs you, a band shows above the prompt; **Hide** keeps it away until a new ask arrives.
+4. File this session: `/timu-file Sunbeam Co > Sunbeam Web / Ship v2`, and see the status line follow.
+5. Ask Claude "what needs me?" (the `board` tool), or "snooze the invoice one for 2 hours" (`handle_ask`).
+
+With the session open, saving a file under `mod/` reloads the mod. Options (`/config`, or `pluginConfigs.timu.options` in settings): **Days to look back** (default 14) and **Include cloud sessions** (default on).
+
+To load it in every session (the desktop app too), add the folder to `~/.claude/settings.json`: `"env": { "CLAUDE_CODE_PLUGIN_DIRS": "/path/to/Timu/mod" }`.
 
 ## Developing
 
