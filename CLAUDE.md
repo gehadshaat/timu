@@ -13,8 +13,9 @@ bottom is satisfied** — code, tests, MCP, docs, setup and the website move tog
 ## Commands
 
 ```bash
-npm run setup      # first run: installs deps, writes .env.local (tokens), checks for the Claude CLI. Safe to re-run.
-npm run dev        # http://localhost:3100 (predev re-checks .env.local; never fails the server)
+npm start          # the one install/run step: installs deps, writes .env.local (tokens), builds once per commit, serves :3100
+npm run setup      # the same without building or starting. Safe to re-run.
+npm run dev        # http://localhost:3100 with hot reload (predev re-checks .env.local; never fails the server)
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint .
 npm test           # vitest run — src/**/*.test.ts, in-memory SQLite
@@ -80,7 +81,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `src/components/goals/GoalsTable.tsx` | Project/goal board rows (`TodoRow`, `SessionRowView`, `ColumnHeads`) — reuse them, don't fork them. |
 | `src/components/ui/` | `Popover` (use `floating` inside tables), `Picker` (`OrgPicker`), `Renameable`, `BulkBar`, `useBulkRunner` (toast + Undo), `Toaster`. |
 | `docs/` | The GitHub Pages site (`index.html`) and the README/site screenshots (`docs/images/`). |
-| `scripts/setup.mjs` | One-command setup. Plain Node, no deps, safe to re-run, never fails `npm run dev`. |
+| `scripts/setup.mjs` | `npm start`: one step from clone to running app (install, tokens, build per commit, serve). Plain Node, no deps, safe to re-run, never fails `npm run dev`. |
 | `extension/` | Chrome extension that syncs claude.ai chats to `/api/ingest/claude-ai`. |
 | `mod/` | Timu as a Claude Code mod: a board pane, a "needs you" band, `/timu` and `/timu-file`, and tools for Claude, in a hooks module. Its filing (`mod/hooks/org.ts`) ports `sources/local.ts`, `sources/cloud.ts`, `classify/heuristic.ts` and `triage/rules.ts`: keep them in step. Tested with `claude plugin test mod`; left out of the app's `tsconfig.json` and ESLint. |
 
@@ -151,7 +152,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 
 | File | Keep it true about |
 | --- | --- |
-| `README.md` | Install (the **one** install path: clone → `npm run setup` → `npm run dev`), "Your first five minutes" (must match the setup wizard's real steps and button labels), "A tour" (screenshots), then reference sections: Sources (Cloud sessions, Several Claude accounts, Routines, Artifacts, Chrome extension), Let Claude run Timu (MCP), How organising works, Development. |
+| `README.md` | Install (the **one** install path: clone → `npm start`), "Your first five minutes" (must match the setup wizard's real steps and button labels), "A tour" (screenshots), then reference sections: Sources (Cloud sessions, Several Claude accounts, Routines, Artifacts, Chrome extension), Let Claude run Timu (MCP), How organising works, Development. |
 | `.env.example` | Every environment variable, commented, grouped by section. |
 | `scripts/setup.mjs` | Anything a new user must have for the feature to work (generated tokens, prompts, printed next steps). |
 | `src/components/SourcesPanel.tsx`, `McpPanel.tsx` | In-app setup help on the Settings page. |

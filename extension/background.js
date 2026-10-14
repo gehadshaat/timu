@@ -27,7 +27,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg?.type !== "timu-ingest") return false;
   (async () => {
     const { timuUrl, token } = await settings();
-    if (!token) return reply({ ok: false, error: "Start Timu (npm run dev), or set your Timu token in the extension popup." });
+    if (!token) return reply({ ok: false, error: "Start Timu (npm start), or set your Timu token in the extension popup." });
     try {
       const res = await fetch(`${timuUrl}/api/ingest/claude-ai`, {
         method: "POST",
