@@ -21,6 +21,8 @@ To organise: list_sessions with unfiled=true, create the companies, projects, te
 
 A session's status is normally what Claude reports; set_session_status overrides it (needs_me raises an ask, done/idle close one) until the session has new activity.
 
+Timu syncs by itself (by default local transcripts every minute, cloud sessions and routines every five; get_settings → auto_sync has the actual intervals), so sessions and asks are already current; use sync_sessions only when the user wants the very latest. A session the user was active in moments ago is judged once it pauses, so its ask can take a couple of minutes to appear.
+
 Routines (Claude Code's scheduled cloud agents and the check-ins sessions schedule for themselves) are in list_routines; import_routines takes the RemoteTrigger list output. Artifacts (pages published to claude.ai and artifacts made in claude.ai chats) are in list_artifacts, filterable by company, project, goal, teammate or session; import_artifacts takes the list your artifact tool prints, move_artifact files one. get_org, get_project, get_teammate and get_session include artifacts too.
 
 For many things at once use the bulk tools: handle_asks, move_sessions, archive_sessions, refile_sessions, set_session_status, add_todos (one per line, with @person #project !high due:fri), update_todos, add_goals, add_milestones, hire_teammates, move_teammates, move_projects. Changes that can be undone return an undo_id; pass it to undo. search finds anything by name; comments (list_comments, add_comment) hold notes and decisions on any company, project, team, teammate, goal, session or to-do.`;

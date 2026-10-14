@@ -40,6 +40,10 @@ export async function startOrganize(mode: OrganizeJob["mode"], opts: { forceHeur
   if (current?.state === "running" && current.startedAt && Date.now() - Date.parse(current.startedAt) < 15 * 60_000) {
     return current;
   }
+  // Nothing waiting to be filed: leave the job (and so the database) as it is. Every sync gets here.
+  if (mode === "incremental" && !(await loadDigests(true)).length) {
+    return current ?? { state: "idle", mode, engine: "heuristic", done: 0, total: 0 };
+  }
   const engine = hasClaude() && !opts.forceHeuristic ? "claude" : "heuristic";
   const job: OrganizeJob = { state: "running", mode, engine, done: 0, total: 0, startedAt: new Date().toISOString() };
   await save(job);

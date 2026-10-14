@@ -314,7 +314,7 @@
       <div class="steps">
         <div class="win step"><span class="n">01</span><h3>Import sessions</h3><p>Local Claude Code transcripts and your claude.ai/code sessions come in automatically. claude.ai chats via an export or the Chrome extension.</p></div>
         <div class="win step"><span class="n">02</span><h3>Build the team</h3><p>Companies, projects, teams and cartoon teammates are proposed for you, each owning a stream of sessions. Rename anyone, drop what you don't want.</p></div>
-        <div class="win step"><span class="n">03</span><h3>Clear what needs you</h3><p>Click a red <b>Needs you</b> cell: done, not needed (it goes quiet until there's news) or snooze. Everything has Undo.</p></div>
+        <div class="win step"><span class="n">03</span><h3>Clear what needs you</h3><p>Click a red <b>Needs you</b> cell: done, not needed (it goes quiet until there's news) or snooze. Everything has Undo. From then on Timu syncs by itself and the page updates live.</p></div>
       </div>
     </div>
   </section>
@@ -397,7 +397,7 @@
         <details><summary>Do I have to paste a token?</summary><p>No. Timu re-reads the login Claude Code keeps on your machine on every sync. If it expires, Settings says "run <code>claude</code>" and the next sync picks it up. (On macOS, where the login lives in the Keychain, set <code>CLAUDE_SESSIONS_TOKEN</code> instead.)</p></details>
         <details><summary>Can Claude run it for me?</summary><p>Yes — Timu is an MCP server. Add it with the command in <b>Settings → Let Claude run Timu</b>, then ask "file my unfiled sessions" or "what needs me today?". Bulk changes return an undo id.</p></details>
         <details><summary>I have two Claude accounts.</summary><p>Sign in to the second with <code>CLAUDE_CONFIG_DIR=~/.claude-work claude</code>. Timu syncs both, each with its own login, into the same companies, projects and goals.</p></details>
-        <details><summary>What does it cost?</summary><p>Running Timu costs nothing beyond your machine. Filing and triage run through your Claude Code login, so they count toward your Claude plan’s usage; without the CLI, Timu sticks to rules.</p></details>
+        <details><summary>What does it cost?</summary><p>Running Timu costs nothing beyond your machine. Filing and triage run through your Claude Code login, so they count toward your Claude plan’s usage; without the CLI, Timu sticks to rules. Timu syncs every minute, but it asks Claude only about sessions with news, once they pause.</p></details>
         <details><summary>Is the office a game?</summary><p>A little. It's one walkable map — WASD, click to walk, <b>E</b> to talk — where anyone waiting on you waves a red <b>!</b>. Talking to them opens their session or clears their ask.</p></details>
       </div>
     </div>

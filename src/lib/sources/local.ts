@@ -26,7 +26,7 @@ interface Line {
 }
 
 /** Recently-written transcripts whose last turn is still mid-tool-loop are "working". */
-const WORKING_WINDOW_MS = 3 * 60 * 1000;
+export const WORKING_WINDOW_MS = 3 * 60 * 1000;
 
 export function parseTranscript(
   jsonl: string,

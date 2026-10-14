@@ -1,6 +1,7 @@
 import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { syncStatus } from "../../auto-sync";
 import { hasClaude } from "../../claude-cli";
 import { PROP_KINDS } from "../../classify/schema";
 import { get, getSetting } from "../../db";
@@ -287,6 +288,21 @@ export function registerReadTools(server: McpServer): void {
     },
   );
 
+  /** The timed sync, as get_settings reports it. `active` is false in `npm run mcp`, which doesn't run the loop. */
+  const autoSync = () => {
+    const s = syncStatus();
+    return {
+      every_seconds: s.every,
+      cloud_every_seconds: s.cloudEvery,
+      active: s.active,
+      running: s.running,
+      last_at: s.lastAt,
+      last_ok: s.lastOk,
+      last_message: s.lastMessage,
+      next_at: s.nextAt,
+    };
+  };
+
   defineTool(
     server,
     "get_settings",
@@ -294,7 +310,7 @@ export function registerReadTools(server: McpServer): void {
       title: "Settings and status",
       kind: "read",
       description:
-        "Timu's configuration and health: sources and their last import, the organiser and its current job, the triage engine, idle cut-off and triage memory rules (with ids for editing), plus the allowed project themes and teammate props.",
+        "Timu's configuration and health: sources and their last import, auto-sync (how often, last and next run), the organiser and its current job, the triage engine, idle cut-off and triage memory rules (with ids for editing), plus the allowed project themes and teammate props.",
       input: z.object({}),
     },
     async () => {
@@ -311,6 +327,7 @@ export function registerReadTools(server: McpServer): void {
         organiser: hasClaude() ? "claude" : "rules",
         organize_job: job,
         cloud_pull_configured: !!cloudConfigFromEnv(),
+        auto_sync: autoSync(),
         sources,
         triage: {
           engine: triageEngine(),

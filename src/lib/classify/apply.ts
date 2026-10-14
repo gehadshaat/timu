@@ -9,12 +9,23 @@ import type { Proposal, ProposalProject, SessionDigest } from "./schema";
 const PROJECT_COLORS = ["#6366f1", "#ec4899", "#14b8a6", "#f59e0b", "#8b5cf6", "#ef4444", "#0ea5e9", "#22c55e"];
 const TEAM_COLORS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#ddd6fe", "#fed7aa", "#a5f3fc", "#e9d5ff"];
 
-/** Load sessions in the compact shape the classifiers read. */
-export async function loadDigests(onlyUnclassified: boolean): Promise<SessionDigest[]> {
+/**
+ * A filed session with new activity is filed again only once it has been quiet this long, so one you're
+ * working in isn't re-read by the organiser on every sync. Unfiled sessions are filed straight away.
+ */
+export const REFILE_QUIET_MS = 10 * 60_000;
+
+/**
+ * Load sessions in the compact shape the classifiers read: all of them, or (`onlyUnclassified`) the
+ * ones waiting to be filed: unfiled, or filed and quiet for REFILE_QUIET_MS since their new activity.
+ */
+export async function loadDigests(onlyUnclassified: boolean, at = new Date()): Promise<SessionDigest[]> {
+  const waiting = " and classified_at is null and (agent_id is null or last_activity_at is null or last_activity_at <= ?)";
   const rows = all<Omit<SessionDigest, "workspace"> & { raw: Record<string, unknown>; agent_id: string | null }>(
     `select id, source, title, repo, raw, agent_id, status, status_detail, first_user_message, last_message, last_message_role, last_activity_at
-     from sessions where archived = 0${onlyUnclassified ? " and classified_at is null" : ""}
+     from sessions where archived = 0${onlyUnclassified ? waiting : ""}
      order by last_activity_at desc nulls last`,
+    ...(onlyUnclassified ? [new Date(at.getTime() - REFILE_QUIET_MS).toISOString()] : []),
   );
   return rows.map(({ raw, agent_id, ...r }) => ({
     ...r,

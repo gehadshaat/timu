@@ -18,14 +18,19 @@ const sum = (a: IngestResult, b: IngestResult): IngestResult => ({
 });
 const NONE: IngestResult = { imported: 0, updated: 0, tasksOpened: 0 };
 
-/** Local transcripts from every Claude account's projects folder. */
-export async function importLocal(): Promise<IngestResult> {
+/**
+ * Local transcripts from every Claude account's projects folder. `onlyChanged` (what syncs use) reads
+ * just the transcripts that changed since the last import; without it every transcript is read again.
+ */
+export async function importLocal(opts: { onlyChanged?: boolean } = {}): Promise<IngestResult> {
   let total = NONE;
   const seen = new Set<string>();
   for (const a of listAccounts()) {
     if (seen.has(a.projectsDir)) continue;
     seen.add(a.projectsDir);
-    total = sum(total, await ingestSessions("local", await scanLocalTranscripts(a.projectsDir), a.id));
+    const scan = await scanLocalTranscripts(a.projectsDir, opts);
+    total = sum(total, await ingestSessions("local", scan.sessions, a.id));
+    scan.remember();
   }
   return total;
 }

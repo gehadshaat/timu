@@ -40,7 +40,7 @@ That's the only install. There's no API key to paste: Timu asks Claude through t
 4. **Clear what needs you.** Home shows each company as a board. Click any red **Needs you** cell to mark it done, mark it not needed (it stays quiet until there's new activity) or snooze it. Every change has Undo.
 5. **Let Claude help (optional).** Add Timu as an MCP server, with the command shown in **Settings → Let Claude run Timu**. Then ask Claude things like "file my unfiled sessions" or "what needs me today?".
 
-After that, **Sync sessions** (bottom left) pulls new activity from every source and files new sessions with the right teammate.
+After that, Timu keeps itself current. It syncs by itself, local transcripts every minute and cloud sessions and routines every five, and files new sessions with the right teammate. Open pages update as soon as something changes. **Sync sessions** (bottom left) runs a sync right away.
 
 ## A tour
 
@@ -67,6 +67,14 @@ The screenshots use the demo companies Sunbeam Co and Duckworks.
 | **Claude Code, cloud** (claude.ai/code) | Sessions API with a token, or paste or upload a JSON dump | Yes: working, blocked, review-ready, failed, plus the session's own "needs action" note |
 | **claude.ai chats, export** | Upload the zip from claude.ai → Settings → Privacy → Export data | No |
 | **claude.ai chats, extension** | The `extension/` Chrome extension syncs chats while you use claude.ai | Updates whenever claude.ai is open |
+
+### Staying in sync
+
+The Timu server syncs on a timer, whether or not a page is open: every `TIMU_SYNC_INTERVAL` seconds for local transcripts (default 60), and every `TIMU_CLOUD_SYNC_INTERVAL` for cloud sessions and routines (default 300). Set `TIMU_SYNC_INTERVAL=0` to sync only when you press **Sync sessions**; the sidebar shows when the last sync ran.
+
+- **Cheap when nothing happens.** A sync reads only the transcripts that changed since the last one, and writes nothing when nothing changed.
+- **Live pages.** Each open tab keeps one connection to `/api/events` (server-sent events) and refreshes when the database changes, whether from a sync, from Claude over MCP, or from another tab. A tab in the background disconnects, then refreshes once when you come back to it.
+- **Model calls only at pauses.** Claude is asked about a session only when it has news. A session you're in the middle of is judged once it has been quiet for two minutes, and re-filed once it has been quiet for ten. So a long conversation costs one call when it pauses, not one per sync.
 
 ### Cloud sessions
 
@@ -204,7 +212,7 @@ See [`mod/README.md`](mod/README.md) for what it shows, how it files, and how to
   - For each session it also judges whether you need to act (`respond`, `review`, `decide`, `unblock`) and writes a short ask.
 - **Without it** (or with `CLAUDE_CLI=off`): a rules-based organiser groups sessions by repo owner and assigns teams and roles from keywords (SEO, ads, PCB, invoices, …).
 - **Setup** produces a draft you review and edit before anything is saved.
-- **After setup**, **Sync sessions** imports new activity and files new or changed sessions into the existing org. New teammates are hired only when nothing fits. A task you marked handled stays closed until that session shows new activity.
+- **After setup**, every sync (on its timer, or **Sync sessions**) imports new activity and files new sessions into the existing org. New teammates are hired only when nothing fits. A filed session with new activity is filed again once it has been quiet for ten minutes. A task you marked handled stays closed until that session shows new activity.
 
 ## Going to the cloud
 

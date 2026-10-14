@@ -2,6 +2,7 @@ import { McpPanel } from "@/components/McpPanel";
 import { ResetOrgButton } from "@/components/ResetOrgButton";
 import { SourcesPanel } from "@/components/SourcesPanel";
 import { SyncButton } from "@/components/SyncButton";
+import { syncStatus } from "@/lib/auto-sync";
 import { TriageMemory } from "@/components/TriageMemory";
 import { getMemory, getStaleDays, triageEngine } from "@/lib/triage";
 import { hasClaude } from "@/lib/classify/claude";
@@ -11,16 +12,21 @@ import { getSourceInfo } from "@/lib/source-info";
 
 export default async function SettingsPage() {
   const [info, stats, memory, staleDays] = await Promise.all([getSourceInfo(), getSourceStats(), getMemory(), getStaleDays()]);
+  const sync = syncStatus();
+  const mins = (s: number) => (s < 60 ? `${s} seconds` : s === 60 ? "minute" : `${Math.round(s / 60)} minutes`);
+  const cadence = !sync.active
+    ? "Timu syncs when you press Sync sessions (TIMU_SYNC_INTERVAL=0)."
+    : `Timu syncs by itself: local transcripts every ${mins(sync.every)}${sync.cloudEvery ? `, cloud sessions and routines every ${mins(sync.cloudEvery)}` : ""}. Open pages update as soon as something changes.`;
   const engine = { typesafe: "TypeSafe Jev", claude: "Claude Haiku 5.5, through the Claude CLI", status: "the session's own status (install the Claude CLI, or set TYPESAFE_API_KEY, for a model)" }[triageEngine()];
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">Sources & settings</h1>
-          <p className="text-zinc-600">Where Timu reads your sessions from. Sync pulls new activity and files new sessions with the right teammate.</p>
+          <p className="text-zinc-600">Where Timu reads your sessions from. {cadence} Each sync files new sessions with the right teammate.</p>
         </div>
         <div className="w-48">
-          <SyncButton />
+          <SyncButton status={sync} />
         </div>
       </header>
 
@@ -36,7 +42,11 @@ export default async function SettingsPage() {
           {stats.map((s) => (
             <li key={s.source}>
               <b>{s.source}</b>: {s.sessions} sessions
-              {s.lastImport ? ` · last run ${timeAgo(s.lastImport.finished_at)} (${s.lastImport.imported} new, ${s.lastImport.updated} updated)` : " · never"}
+              {!s.lastImport
+                ? " · nothing imported yet"
+                : s.lastImport.error
+                  ? ` · failed ${timeAgo(s.lastImport.finished_at)}`
+                  : ` · last new activity ${timeAgo(s.lastImport.finished_at)} (${s.lastImport.imported} new, ${s.lastImport.updated} updated)`}
               {s.lastImport?.error ? <span className="text-rose-600"> · {s.lastImport.error}</span> : null}
             </li>
           ))}

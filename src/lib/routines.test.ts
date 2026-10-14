@@ -62,7 +62,8 @@ describe("stored routines", () => {
 
   it("upserts by id and files each routine under its session's teammate and project", () => {
     expect(saveRoutines({ data: [daily, checkin, fired] })).toEqual({ imported: 3, updated: 0 });
-    expect(saveRoutines({ data: [daily] })).toEqual({ imported: 0, updated: 1 });
+    expect(saveRoutines({ data: [daily] })).toEqual({ imported: 0, updated: 0 }); // unchanged: nothing written
+    expect(saveRoutines({ data: [{ ...daily, last_fired_at: "2026-10-14T12:59:00Z" }] })).toEqual({ imported: 0, updated: 1 });
     expect(all("select id from routines")).toHaveLength(3);
 
     const [company] = insert<{ id: string }>("companies", { slug: "acme", name: "Acme" });

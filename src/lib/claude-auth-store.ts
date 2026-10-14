@@ -13,8 +13,13 @@ export interface LastLogin {
   at: string;
 }
 
-/** Remember which login Claude last accepted (Settings shows it; a rejected .env.local token is flagged). */
+/**
+ * Remember which login Claude last accepted (Settings shows it; a rejected .env.local token is flagged).
+ * Saved when it changes, else at most hourly: syncs call this every few minutes.
+ */
 export function rememberLogin(t: ClaudeToken, account?: ClaudeAccount): void {
+  const last = lastLogin(account);
+  if (last?.source === t.source && Date.now() - Date.parse(last.at) < 3600_000) return;
   setSetting(keyFor(account), { source: t.source, at: new Date().toISOString() } satisfies LastLogin);
 }
 
