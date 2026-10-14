@@ -7,6 +7,7 @@ import { syncIntervals } from "./auto-sync";
 import { loadDigests, REFILE_QUIET_MS } from "./classify/apply";
 import { all, get, getSetting, insert, openDatabase, run, scalar, useDatabase } from "./db";
 import { ingestSessions, judgeDueSessions } from "./ingest";
+import { rejudgeSession } from "./rejudge";
 import { DataVersionWatcher } from "./live";
 import { startOrganize } from "./organize";
 import { transcriptsToRead } from "./sources/local-scan";
@@ -158,6 +159,12 @@ describe("judging sessions once they've paused", () => {
     ]);
     expect(scalar("select count(*) from tasks where status = 'open'")).toBe(1);
     expect(await judgeDueSessions()).toBe(0);
+  });
+
+  it("a session you re-check by hand no longer waits to be judged", async () => {
+    const id = scalar<string>("select id from sessions where external_id = 'kai-later'");
+    expect((await rejudgeSession(id)).ok).toBe(true);
+    expect(scalar("select triage_due_at from sessions where id = ?", id)).toBeNull();
   });
 });
 

@@ -49,7 +49,8 @@ export async function rejudgeSession(sessionId: string): Promise<RejudgeResult> 
     };
     const verdict = (await judgeSessions([input])).get(s.id);
     if (!verdict) return { ok: false, message: "The judge didn't answer; try again." };
-    update("sessions", { triage: verdict }, "id = ?", s.id);
+    // Judged now, so it's no longer waiting for the sync's settle pass (see judgeDueSessions).
+    update("sessions", { triage: verdict, triage_due_at: null }, "id = ?", s.id);
 
     const active = get<{ id: string }>("select id from tasks where session_id = ? and status <> 'done'", s.id);
     const draft = verdictToDraft(verdict, { title: s.title, statusDetail: s.status_detail, lastMessage: s.last_message });
