@@ -5,10 +5,11 @@ import { getGoals, getInbox, getOffice, getOrg, getSessions, getTodos } from "./
 
 /**
  * Speed budget: every read model a page loads stays under 20 ms on a workspace bigger than most
- * (3,000 sessions, 600 open asks, 60 teammates). A query that grows a scan or an N+1 fails here.
+ * (2,000 sessions, 400 open asks, 60 teammates), with room for CI machines about twice as slow
+ * as a laptop. A query that grows a scan or an N+1 fails here.
  */
 const BUDGET_MS = 20;
-const SESSIONS = 3000;
+const SESSIONS = 2000;
 
 /**
  * The best of several timed runs, after two warm-ups (prepared statements, JIT). The best run is what

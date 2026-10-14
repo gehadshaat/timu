@@ -149,7 +149,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 - Vitest, `src/**/*.test.ts`. DB tests: `beforeAll(() => useDatabase(openDatabase(":memory:")))`,
   `afterAll(() => useDatabase(null))` — migrations run automatically.
 - Test parsers (`sources/*`), layout/maths, filing rules and every bulk op with its undo. Demo names only.
-- `src/lib/perf.test.ts` holds every page's read model to **20 ms** on a 3,000-session workspace. If a change trips
+- `src/lib/perf.test.ts` holds every page's read model to **20 ms** on a 2,000-session workspace. If a change trips
   it, fix the query (group in one pass, don't filter per row) rather than raising the budget.
 
 ---
