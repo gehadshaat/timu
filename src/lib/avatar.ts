@@ -18,6 +18,20 @@ export type Pose =
   | "failed"
   | "walking";
 
+export const POSES: Pose[] = ["working", "thinking", "reading", "call", "needs_you", "review", "idle", "done", "failed", "walking"];
+
+/**
+ * Where a small avatar is drawn as an image (see Character): one URL per look and pose, the same on
+ * the server and in the browser, so the browser fetches each teammate once and caches it.
+ */
+export function avatarUrl(spec: AvatarSpec, pose: Pose): string {
+  const q = new URLSearchParams({ pose, seed: spec.seed });
+  if (spec.prop) q.set("prop", spec.prop);
+  for (const k of ["skin", "hair", "hairColor", "outfit"] as const) if (spec[k] != null) q.set(k, String(spec[k]));
+  if (spec.glasses != null) q.set("glasses", spec.glasses ? "1" : "0");
+  return `/api/avatar?${q}`;
+}
+
 const BUSY_POSES: Pose[] = ["working", "working", "thinking", "reading", "call"];
 
 export function isBusy(pose: Pose): boolean {

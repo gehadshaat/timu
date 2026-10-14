@@ -44,16 +44,24 @@ export const HEALTH_LABEL: Record<Health, string> = {
   empty: "No sessions yet",
 };
 
-/** Which sparkline bucket (0 = oldest, SPARK_DAYS-1 = today) a timestamp falls in, or null if older. */
-function dayIndex(iso: string | null, now: number): number | null {
-  if (!iso) return null;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return null;
+/** Local midnight at the start of `now`'s day. */
+function startOfDay(now: number): number {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
+  return today.getTime();
+}
+
+/**
+ * Which sparkline bucket (0 = oldest, SPARK_DAYS-1 = today) a time falls in, or null if older.
+ * `today` is startOfDay(now), worked out once per computeSignals.
+ */
+function dayIndex(t: number, today: number): number | null {
+  if (Number.isNaN(t)) return null;
+  // Older than the sparkline by more than a day (DST can't make up a day): skip the date maths.
+  if (t < today - (SPARK_DAYS + 1) * DAY) return null;
   const day = new Date(t);
   day.setHours(0, 0, 0, 0);
-  const daysAgo = Math.round((today.getTime() - day.getTime()) / DAY);
+  const daysAgo = Math.round((today - day.getTime()) / DAY);
   if (daysAgo < 0) return SPARK_DAYS - 1; // clock skew: count as today
   if (daysAgo >= SPARK_DAYS) return null;
   return SPARK_DAYS - 1 - daysAgo;
@@ -78,6 +86,7 @@ export function computeSignals(
   let working = 0;
   let shipped7d = 0;
   let lastActive: string | null = null;
+  const today = startOfDay(now);
 
   for (const s of input.sessions) {
     const last = s.last_activity_at ? Date.parse(s.last_activity_at) : NaN;
@@ -86,8 +95,10 @@ export function computeSignals(
     if (s.status === "done" && !Number.isNaN(last) && now - last <= 7 * DAY) shipped7d++;
     if (s.last_activity_at && (!lastActive || s.last_activity_at > lastActive)) lastActive = s.last_activity_at;
     // Each session counts once per day it was started or active.
-    const days = new Set([dayIndex(s.last_activity_at, now), dayIndex(s.started_at, now)].filter((d): d is number => d !== null));
-    for (const d of days) spark[d]++;
+    const active = dayIndex(last, today);
+    const started = dayIndex(s.started_at ? Date.parse(s.started_at) : NaN, today);
+    if (active !== null) spark[active]++;
+    if (started !== null && started !== active) spark[started]++;
   }
 
   const active = (input.goals ?? []).filter((g) => g.status === "active");

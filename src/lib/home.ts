@@ -90,6 +90,22 @@ export async function getHome(): Promise<HomeData> {
   const progress = await getGoalProgressMap(sessions);
   const now = Date.now();
 
+  // Sessions by project, team and teammate, in their original order: one pass instead of a filter per card.
+  const groupBy = (key: "project_id" | "team_id" | "agent_id") => {
+    const out = new Map<string, LiteSession[]>();
+    for (const s of sessions) {
+      const k = s[key];
+      if (!k) continue;
+      const list = out.get(k);
+      if (list) list.push(s);
+      else out.set(k, [s]);
+    }
+    return out;
+  };
+  const byProject = groupBy("project_id");
+  const byTeam = groupBy("team_id");
+  const byAgent = groupBy("agent_id");
+
   const asksByProject = new Map<string, number>();
   const asksByTeam = new Map<string, number>();
   for (const it of inbox) {
@@ -105,7 +121,7 @@ export async function getHome(): Promise<HomeData> {
     const people = org.agents.filter((a) => teamIds.has(a.team_id));
     const signals = computeSignals(
       {
-        sessions: sessions.filter((s) => s.project_id === project.id),
+        sessions: byProject.get(project.id) ?? [],
         asks: asksByProject.get(project.id) ?? 0,
         goals: goalsFor((g) => g.project_id === project.id),
         people: people.length,
@@ -135,7 +151,7 @@ export async function getHome(): Promise<HomeData> {
         const people = org.agents.filter((a) => teamIds.has(a.team_id));
         const signals = computeSignals(
           {
-            sessions: sessions.filter((s) => s.team_id && teamIds.has(s.team_id)),
+            sessions: d.teams.flatMap((t) => byTeam.get(t.id) ?? []),
             asks: d.teams.reduce((n, t) => n + (asksByTeam.get(t.id) ?? 0), 0),
             goals: goalsFor((g) => !!g.team_id && teamIds.has(g.team_id)),
             people: people.length,
@@ -158,7 +174,7 @@ export async function getHome(): Promise<HomeData> {
   for (const it of inbox) if (it.agent) kindsByAgent.set(it.agent.id, [...(kindsByAgent.get(it.agent.id) ?? []), it.task.kind]);
   const cast = org.agents
     .map((agent) => {
-      const mine = sessions.filter((s) => s.agent_id === agent.id);
+      const mine = byAgent.get(agent.id) ?? [];
       const working = mine.find((s) => s.status === "working");
       const recentlyDone = mine.some((s) => s.status === "done" && !!s.last_activity_at && now - Date.parse(s.last_activity_at) < 86_400_000);
       const kinds = kindsByAgent.get(agent.id) ?? [];

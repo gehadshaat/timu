@@ -92,16 +92,43 @@ export function useDatabase(d: DatabaseSync | null): void {
   conn = d;
 }
 
-const statements = new Map<string, StatementSync>();
-function prepare(sql: string): StatementSync {
-  const d = db();
-  let s = statements.get(sql);
-  if (!s || (s as StatementSync & { __db?: DatabaseSync }).__db !== d) {
-    s = d.prepare(sql);
-    (s as StatementSync & { __db?: DatabaseSync }).__db = d;
-    statements.set(sql, s);
+/**
+ * A cached statement, set to return rows as arrays, plus what turns one into a row object.
+ * node:sqlite's own row objects have no prototype, so they used to be copied ({ ...row }) before
+ * React could pass them to the browser; building plain objects straight from arrays with one
+ * generated constructor per column list is about four times faster.
+ */
+interface Prepared {
+  db: DatabaseSync;
+  stmt: StatementSync;
+  make: (values: unknown[]) => Row;
+  decode: ((row: Row) => Row) | null;
+}
+
+const makers = new Map<string, (values: unknown[]) => Row>();
+/** `(r) => ({ "id": r[0], "title": r[1], … })`, one per distinct column list. Names are quoted, so any alias is safe. */
+function rowMaker(names: string[]): (values: unknown[]) => Row {
+  const key = JSON.stringify(names);
+  let make = makers.get(key);
+  if (!make) {
+    make = new Function("r", `return { ${names.map((n, i) => `${JSON.stringify(n)}: r[${i}]`).join(", ")} };`) as (values: unknown[]) => Row;
+    makers.set(key, make);
   }
-  return s;
+  return make;
+}
+
+const statements = new Map<string, Prepared>();
+function prepare(sql: string): Prepared {
+  const d = db();
+  let p = statements.get(sql);
+  if (!p || p.db !== d) {
+    const stmt = d.prepare(sql);
+    const cols = stmt.columns();
+    stmt.setReturnArrays(true);
+    p = { db: d, stmt, make: rowMaker(cols.map((c) => c.name)), decode: decoder(cols) };
+    statements.set(sql, p);
+  }
+  return p;
 }
 
 function encode(v: Param): SQLInputValue {
@@ -112,8 +139,8 @@ function encode(v: Param): SQLInputValue {
   return v as SQLInputValue;
 }
 
-function decoder(s: StatementSync): ((row: Row) => Row) | null {
-  const cols = s.columns().filter((c) => c.type === "json" || c.type === "boolean");
+function decoder(columns: ReturnType<StatementSync["columns"]>): ((row: Row) => Row) | null {
+  const cols = columns.filter((c) => c.type === "json" || c.type === "boolean");
   if (!cols.length) return null;
   return (row) => {
     for (const c of cols) {
@@ -127,30 +154,29 @@ function decoder(s: StatementSync): ((row: Row) => Row) | null {
 
 /** Every row of a query. */
 export function all<T = Row>(sql: string, ...params: Param[]): T[] {
-  const s = prepare(sql);
-  const rows = s.all(...params.map(encode)).map((r) => ({ ...r }) as Row);
-  const dec = decoder(s);
-  return (dec ? rows.map(dec) : rows) as T[];
+  const { stmt, make, decode } = prepare(sql);
+  const rows = (stmt.all(...params.map(encode)) as unknown as unknown[][]).map(make);
+  return (decode ? rows.map(decode) : rows) as T[];
 }
 
 /** The first row of a query, or null. */
 export function get<T = Row>(sql: string, ...params: Param[]): T | null {
-  const s = prepare(sql);
-  const row = s.get(...params.map(encode));
-  if (!row) return null;
-  const dec = decoder(s);
-  return (dec ? dec({ ...row }) : { ...row }) as T;
+  const { stmt, make, decode } = prepare(sql);
+  const values = stmt.get(...params.map(encode)) as unknown as unknown[] | undefined;
+  if (!values) return null;
+  const row = make(values);
+  return (decode ? decode(row) : row) as T;
 }
 
 /** The first column of the first row, e.g. `select count(*) …`. */
 export function scalar<T = number>(sql: string, ...params: Param[]): T {
-  const row = prepare(sql).get(...params.map(encode));
-  return (row ? Object.values(row)[0] : null) as T;
+  const values = prepare(sql).stmt.get(...params.map(encode)) as unknown as unknown[] | undefined;
+  return (values ? values[0] : null) as T;
 }
 
 /** An insert/update/delete. Returns how many rows changed. */
 export function run(sql: string, ...params: Param[]): number {
-  return Number(prepare(sql).run(...params.map(encode)).changes);
+  return Number(prepare(sql).stmt.run(...params.map(encode)).changes);
 }
 
 let depth = 0;

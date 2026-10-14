@@ -228,7 +228,7 @@ The screenshots come from a demo workspace (Sunbeam Co and Duckworks), not real 
 
 
 ```bash
-npm test          # vitest: parsers, status mapping, organiser, task/pose logic
+npm test          # vitest: parsers, status mapping, organiser, task/pose logic, and a 20 ms speed budget for page queries
 npm run lint
 npm run typecheck
 ```

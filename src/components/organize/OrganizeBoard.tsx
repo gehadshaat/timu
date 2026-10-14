@@ -4,7 +4,6 @@ import Link from "next/link";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { bulkAgentsAction, bulkProjectsAction, bulkSessionsAction, type BulkResult, type SessionOp } from "@/app/_actions/bulk";
-import { timeAgo } from "@/lib/format";
 import { fold } from "@/lib/search";
 import { companyHref, personHref, projectHref, teamHref } from "@/lib/links";
 import type { OrgOptions } from "@/lib/queries";
@@ -14,6 +13,7 @@ import { StatusPill } from "../StatusPill";
 import type { SessionLite } from "@/lib/session-lite";
 import { opForPick } from "../sessions/SessionBoard";
 import { BAR_POPOVER, BarButton, BulkBar, SelectBox } from "../ui/BulkBar";
+import { Ago } from "../ui/Ago";
 import { Leaving, markedClasses } from "../ui/Leaving";
 import { OrgPicker } from "../ui/Picker";
 import { Popover } from "../ui/Popover";
@@ -378,7 +378,7 @@ export function OrganizeBoard({
                 const owner = s.agent_id ? agents.get(s.agent_id) : undefined;
                 const project = s.project_id ? projects.get(s.project_id) : undefined;
                 return (
-                  <Leaving key={s.id} phase={phase} as="li">
+                  <Leaving key={s.id} phase={phase} as="li" className="board-row">
                     <div
                       draggable={phase === "idle"}
                       onDragStart={(e) => {
@@ -404,7 +404,7 @@ export function OrganizeBoard({
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-500">
                           <StatusPill status={s.status} />
                           <SourceBadge source={s.source} />
-                          <span>{timeAgo(s.last_activity_at)}</span>
+                          <Ago iso={s.last_activity_at} />
                         </div>
                         {owner || project || s.repo ? (
                           <div className="mt-1 truncate text-[11px] text-zinc-500">
