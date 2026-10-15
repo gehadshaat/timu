@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractCloudRecords, mapCloudSession } from "./cloud";
-import { looksLikeQuestion, parseTranscript } from "./local";
+import { cloudIdFromUrl, looksLikeQuestion, parseTranscript } from "./local";
 import { extractConversations, mapClaudeAiConversation } from "./claudeai";
 
 describe("cloud sessions", () => {
@@ -112,5 +112,34 @@ describe("claude.ai conversations", () => {
   it("extracts from export array and extension payload", () => {
     expect(extractConversations([conv])).toHaveLength(1);
     expect(extractConversations({ conversations: [conv, { nope: 1 }] })).toHaveLength(1);
+  });
+});
+
+describe("a transcript that is also a claude.ai/code session", () => {
+  const lines = (...objs: object[]) => objs.map((o) => JSON.stringify(o)).join("\n");
+  const meta = { sessionId: "7d1e0c52-0000-4000-8000-000000000001", cwd: "/work/sunbeam-web", isSidechain: false };
+  const prompt = { type: "user", ...meta, timestamp: "2026-10-12T10:00:00Z", message: { role: "user", content: "Fix the Sunbeam pricing page" } };
+  const remote = (url: string | null) => ({ type: "attachment", ...meta, attachment: { type: "remote_session_change", url, commit: "", pr: "" } });
+
+  it("reads the cloud session from Claude Code's remote_session_change line", () => {
+    const s = parseTranscript(lines(remote("https://claude.ai/code/session_01SunbeamWeb"), prompt), { fileId: "x" });
+    expect(s?.cloudId).toBe("session_01SunbeamWeb");
+  });
+
+  it("keeps the last link it named after Remote Control is switched off", () => {
+    const s = parseTranscript(lines(remote("https://claude.ai/code/session_01First"), prompt, remote("https://claude.ai/code/session_01Second"), remote(null)), { fileId: "x" });
+    expect(s?.cloudId).toBe("session_01Second");
+  });
+
+  it("is null for a session that was never on claude.ai, and ignores subagent lines", () => {
+    expect(parseTranscript(lines(prompt), { fileId: "x" })?.cloudId).toBeNull();
+    expect(parseTranscript(lines({ ...remote("https://claude.ai/code/session_01Sub"), isSidechain: true }, prompt), { fileId: "x" })?.cloudId).toBeNull();
+  });
+
+  it("spells cse_ ids the way the cloud API does", () => {
+    expect(cloudIdFromUrl("https://claude.ai/code/cse_01Duckworks")).toBe("session_01Duckworks");
+    expect(cloudIdFromUrl("https://claude.ai/code/session_01Duckworks?tab=diff")).toBe("session_01Duckworks");
+    expect(cloudIdFromUrl("https://claude.ai/chat/0b9f")).toBeNull();
+    expect(cloudIdFromUrl(null)).toBeNull();
   });
 });

@@ -23,6 +23,8 @@ export interface NormalizedSession {
   startedAt: string | null;
   lastActivityAt: string | null;
   raw: Record<string, unknown>;
+  /** Local transcripts only: the claude.ai/code session (session_…) it mirrors (Remote Control, teleport). */
+  cloudId?: string | null;
 }
 
 export interface AvatarSpec {
@@ -160,6 +162,10 @@ export interface SessionRow {
   status_override: SessionStatus | null;
   /** The Claude account it came from ("claude", "claude-work"…); accounts share one org. */
   account?: string | null;
+  /** On a local row: the claude.ai/code session it mirrors, until that session is imported and absorbs it. */
+  cloud_id?: string | null;
+  /** On a cloud row: the local transcript folded into it, so it can also be resumed in the terminal. */
+  local_id?: string | null;
   /** How many artifacts it made (list queries only). */
   artifact_count?: number;
 }

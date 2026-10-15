@@ -21,6 +21,7 @@ export type SessionLite = Pick<
   | "goal_id"
   | "status_override"
   | "account"
+  | "local_id"
   | "artifact_count"
 > & {
   /** The status Claude reports (`status` is what boards show: yours when you set one). */
@@ -48,6 +49,7 @@ export function toSessionLite(s: SessionRow): SessionLite {
     goal_id: s.goal_id,
     status_override: s.status_override ?? null,
     account: s.account ?? null,
+    local_id: s.local_id ?? null,
     artifact_count: s.artifact_count ?? 0,
     claude_status: s.status,
   };

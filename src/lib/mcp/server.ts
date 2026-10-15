@@ -15,7 +15,7 @@ const INSTRUCTIONS = `Timu organises the user's Claude sessions like a small com
 - Teams have teammates: cartoon personas with a role. Every imported Claude session is owned by one teammate; sessions with no owner are "unfiled".
 - The inbox holds asks: sessions waiting on the user (respond, review, decide, unblock, run). Triage rules decide which sessions genuinely need the user.
 
-Start with get_org for the structure and ids. Tools take an id, a slug or an exact name; qualify repeated names as "Project / Team" or "Team / Name". Sessions can also be named by their Claude session id or claude.ai URL.
+Start with get_org for the structure and ids. Tools take an id, a slug or an exact name; qualify repeated names as "Project / Team" or "Team / Name". Sessions can also be named by their Claude session id or claude.ai URL. A terminal session that is also on claude.ai (Remote Control, or a cloud session teleported to the terminal) is one cloud session; its resume command picks it up in the terminal.
 
 To organise: list_sessions with unfiled=true, create the companies, projects, teams and teammates that are missing, then assign_sessions. Deleting a project or team asks what happens to its sessions (unfile, refile or move).
 

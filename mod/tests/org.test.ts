@@ -135,6 +135,21 @@ describe('filing', () => {
     expect(rows[0]!.isHere).toBe(true)
   })
 
+  test('a terminal session connected to claude.ai shows once, and a fork of it stays its own', () => {
+    const remote = (url: string | null) => JSON.stringify({ type: 'attachment', sessionId: 'tty-1', attachment: { type: 'remote_session_change', url } })
+    const text = [
+      remote('https://claude.ai/code/cse_01SETUP'),
+      transcript({ id: 'tty-1', cwd: '/work/sunbeam-web', prompt: 'Set up Sunbeam Web in one step', reply: 'Done.', at: '2026-10-14T10:00:00Z' }),
+      remote(null),
+    ].join('\n')
+    const tty = parseTranscript(text, { fileId: 'tty-1', mtimeMs: NOW - 2 * HOUR, now: NOW })!
+    expect(tty.cloudId).toBe('session_01SETUP')
+    const web: Session = { ...local({ id: 'session_01SETUP', title: 'One-step setup' }), source: 'cloud', open: 'https://claude.ai/code/session_01SETUP' }
+    const fork = local({ id: 'tty-2', title: 'One-step setup, with pnpm', cloudId: 'session_01SETUP' })
+    const rows = fileSessions(world([web, tty, fork]))
+    expect(rows.map(r => r.id).sort()).toEqual(['tty-1', 'tty-2'])
+  })
+
   test('the board text lists asks first, then every project', () => {
     const rows = fileSessions(world([login, seo, here]))
     const text = boardText({ scannedAt: NOW, rows, notes: [] }, NOW)

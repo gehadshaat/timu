@@ -157,7 +157,9 @@ export function registerReadTools(server: McpServer): void {
         team: ref(TEAM_REF).optional(),
         teammate: ref(TEAMMATE_REF).optional(),
         status: z.enum(SESSION_STATUSES).optional(),
-        source: z.enum(SOURCES).optional().describe("cloud = Claude Code on the web, local = Claude Code on this machine, claude_ai = claude.ai chats"),
+        source: z.enum(SOURCES).optional().describe(
+            "cloud = Claude Code on the web (a terminal session connected to claude.ai with Remote Control is one cloud session, with a resume command), local = Claude Code on this machine, claude_ai = claude.ai chats",
+          ),
         query: z.string().trim().min(1).optional().describe("Text to look for in the title"),
         unfiled: z.boolean().optional(),
         archived: z.boolean().optional(),
