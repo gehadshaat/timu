@@ -3,6 +3,7 @@ import { fileArtifacts, linkSessionArtifacts } from "./artifacts";
 import { all, insert, get, now, update } from "./db";
 import { deriveTask, verdictToDraft } from "./tasks";
 import { judgeOrDefer, judgeSessions, type TriageInput } from "./triage";
+import { absorbWaitingTwins, foldLocalTwins } from "./twins";
 import type { NormalizedSession, SessionSource, Verdict } from "./types";
 
 /** Sessions are saved and judged this many at a time. */
@@ -32,9 +33,10 @@ const IMPORTED = [
   "last_activity_at",
   "raw",
   "account",
+  "cloud_id",
 ] as const;
 type Imported = Record<(typeof IMPORTED)[number], unknown>;
-type Existing = Imported & { id: string; external_id: string; title_locked: boolean; archived: boolean };
+type Existing = Imported & { id: string; external_id: string; title_locked: boolean; archived: boolean; local_id: string | null };
 
 const same = (a: unknown, b: unknown) =>
   (a ?? null) === (b ?? null) || (typeof a === "object" && typeof b === "object" && JSON.stringify(a) === JSON.stringify(b));
@@ -61,18 +63,27 @@ const triageInput = (id: string, s: Pick<NormalizedSession, "title" | "status" |
  * database changes, so a sync that finds nothing new must change nothing.
  *
  * `account` is the Claude account they came from (see claude-accounts); kept as is when omitted.
+ *
+ * A conversation that is both a local transcript and a cloud session (Remote Control, teleport) is kept
+ * as one row, the cloud one (see twins.ts).
  */
 export async function ingestSessions(source: SessionSource, sessions: NormalizedSession[], account?: string): Promise<IngestResult> {
   const startedAt = now();
   try {
     const result: IngestResult = { imported: 0, updated: 0, tasksOpened: 0 };
     // Dedupe on external id (the extension can send the same chat twice in one batch).
-    const unique = [...new Map(sessions.map((s) => [s.externalId, s])).values()];
+    let unique = [...new Map(sessions.map((s) => [s.externalId, s])).values()];
+    // Transcripts of cloud sessions Timu already has become part of those sessions' rows.
+    if (source === "local") {
+      const twins = foldLocalTwins(unique);
+      unique = twins.rest;
+      result.updated += twins.folded;
+    }
 
     for (let i = 0; i < unique.length; i += CHUNK) {
       const chunk = unique.slice(i, i + CHUNK);
       const existing = all<Existing>(
-        `select id, external_id, title_locked, archived, ${IMPORTED.join(", ")} from sessions where source = ? and external_id in (select value from json_each(?))`,
+        `select id, external_id, title_locked, archived, local_id, ${IMPORTED.join(", ")} from sessions where source = ? and external_id in (select value from json_each(?))`,
         source,
         chunk.map((s) => s.externalId),
       );
@@ -97,6 +108,7 @@ export async function ingestSessions(source: SessionSource, sessions: Normalized
             last_activity_at: s.lastActivityAt,
             raw: s.raw,
             account: account ?? prev?.account,
+            cloud_id: s.cloudId ?? null,
           };
           return { s, prev, values };
         })
@@ -138,13 +150,16 @@ export async function ingestSessions(source: SessionSource, sessions: Normalized
       }
       // Artifacts these sessions link to (see sources/artifacts); filed after the organiser places the sessions.
       // An empty list counts too: it clears links a session no longer claims. Sources that don't
-      // report artifacts (no list at all) leave their sessions' links alone.
+      // report artifacts (no list at all) leave their sessions' links alone, and so does a cloud
+      // session with a transcript folded into it: the transcript knows better (see twins.ts).
       linkSessionArtifacts(
         changes
-          .filter((c) => Array.isArray(c.s.raw.artifacts))
+          .filter((c) => Array.isArray(c.s.raw.artifacts) && !c.prev?.local_id)
           .map((c) => ({ sessionId: c.id, artifacts: c.s.raw.artifacts as { id: string; url: string; title?: string | null }[] })),
       );
     }
+    // Transcripts imported before their cloud session was: now they can join it.
+    if (source === "cloud") result.updated += absorbWaitingTwins(unique.map((s) => s.externalId));
     fileArtifacts();
 
     if (result.imported || result.updated) {

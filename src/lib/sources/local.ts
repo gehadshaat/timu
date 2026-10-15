@@ -18,6 +18,7 @@ interface Line {
   timestamp?: string;
   aiTitle?: string;
   summary?: string;
+  attachment?: { type?: string; url?: string | null };
   message?: {
     role?: string;
     stop_reason?: string | null;
@@ -28,6 +29,15 @@ interface Line {
 /** Recently-written transcripts whose last turn is still mid-tool-loop are "working". */
 export const WORKING_WINDOW_MS = 3 * 60 * 1000;
 
+/**
+ * The claude.ai/code session a link names, as the cloud API ids it: `session_…` (Claude Code also
+ * spells the same id `cse_…`). Null for anything else.
+ */
+export function cloudIdFromUrl(url: string | null | undefined): string | null {
+  const id = url?.match(/\/code\/((?:session|cse)_[A-Za-z0-9]+)/)?.[1];
+  return id ? id.replace(/^cse_/, "session_") : null;
+}
+
 export function parseTranscript(
   jsonl: string,
   opts: { fileId: string; mtimeMs?: number; now?: number },
@@ -37,6 +47,11 @@ export function parseTranscript(
   let branch: string | null = null;
   let aiTitle: string | null = null;
   let summaryTitle: string | null = null;
+  // The cloud session this conversation is mirrored to: Claude Code writes a `remote_session_change`
+  // line with its claude.ai/code link when the session is a cloud one or is connected with Remote
+  // Control, and a session teleported to the terminal carries its cloud lines over. The link goes back
+  // to null when Remote Control is switched off, so the last link the transcript named is the one.
+  let cloudId: string | null = null;
   let firstUser: string | null = null;
   let lastText: { role: "user" | "assistant"; text: string } | null = null;
   let lastAssistantStop: string | null = null;
@@ -55,6 +70,9 @@ export function parseTranscript(
     }
     if (line.type === "ai-title" && line.aiTitle) aiTitle = line.aiTitle;
     if (line.type === "summary" && line.summary) summaryTitle = line.summary;
+    if (line.type === "attachment" && line.attachment?.type === "remote_session_change" && !line.isSidechain) {
+      cloudId = cloudIdFromUrl(line.attachment.url) ?? cloudId;
+    }
     if (line.type !== "user" && line.type !== "assistant") continue;
     if (line.isSidechain) continue;
     if (line.sessionId) sessionId = line.sessionId;
@@ -124,6 +142,7 @@ export function parseTranscript(
     lastActivityAt: lastAt,
     // Artifacts this session published (see publishedArtifactLinks).
     raw: { cwd, resume: `claude --resume ${sessionId}`, artifacts: publishedArtifactLinks(jsonl) },
+    cloudId,
   };
 }
 

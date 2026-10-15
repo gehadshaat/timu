@@ -15,7 +15,7 @@ import { toAskView } from "@/lib/ask-view";
 import { getComments } from "@/lib/comments";
 import { KIND_LABEL, timeAgo } from "@/lib/format";
 import { isUuid } from "@/lib/db";
-import { personHref, projectHref } from "@/lib/links";
+import { personHref, projectHref, resumeFor } from "@/lib/links";
 import { getSessionDetail, orgOptions } from "@/lib/queries";
 
 const ENGINE: Record<string, string> = { typesafe: "🧠 TypeSafe Jev", claude: "✨ Claude", rules: "📏 Rules", status: "📡 Session status", you: "👤 You" };
@@ -32,7 +32,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const snoozed = tasks.filter((t) => t.status === "snoozed" && t.snoozed_until && Date.parse(t.snoozed_until) >= now);
   const past = tasks.filter((t) => t.status === "done");
   const asks = open.map((task) => toAskView({ task, session: s, agent, team, project }, org));
-  const resume = s.source === "local" ? `claude --resume ${s.external_id}` : null;
+  const resume = resumeFor(s);
   const v = s.triage;
   const artifacts = getArtifacts(org, { sessionId: s.id });
 

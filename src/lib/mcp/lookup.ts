@@ -5,13 +5,18 @@ import { isUuid, sessionKey } from "./resolve";
 
 export type FullSession = SessionRow & { raw: Record<string, unknown> };
 
-/** Load sessions by Timu id, source id or URL, in the order given. Throws naming any that don't exist. */
+/**
+ * Load sessions by Timu id, source id or URL, in the order given. Throws naming any that don't exist.
+ * A transcript folded into its cloud session (see twins.ts) is found by its id too.
+ */
 export async function findSessions(refs: string[]): Promise<FullSession[]> {
   const keys = [...new Set(refs.map(sessionKey))];
   const ids = keys.filter(isUuid);
   const byExternal = all<FullSession>("select * from sessions where external_id in (select value from json_each(?))", keys);
   const byId = ids.length ? all<FullSession>("select * from sessions where id in (select value from json_each(?))", ids) : [];
+  const byLocal = ids.length ? all<FullSession>("select * from sessions where local_id in (select value from json_each(?))", ids) : [];
   const found = new Map<string, FullSession>();
+  for (const s of byLocal) found.set(s.local_id!, s);
   for (const s of byExternal) found.set(s.external_id, s);
   for (const s of byId) found.set(s.id, s);
   const missing = keys.filter((k) => !found.has(k));

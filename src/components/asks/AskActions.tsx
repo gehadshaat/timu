@@ -10,22 +10,29 @@ export interface AskHandlers {
   onSnooze: (hours: number, label: string) => void;
 }
 
-/** Open the session where it lives: a link for cloud/claude.ai, a copyable resume command for local ones. */
+/**
+ * Open the session where it lives: a link for cloud/claude.ai, a copyable resume command for local ones,
+ * and both for a cloud session that is also on this machine (Remote Control, teleport).
+ */
 export function OpenSession({ url, resume, small = false }: { url: string | null; resume: string | null; small?: boolean }) {
+  const link = url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={clsx("rounded-xl bg-ink font-bold text-paper shadow-sm hover:opacity-90", small ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm")}
+    >
+      Open ↗
+    </a>
+  ) : null;
+  const copy = resume ? <ResumeButton resume={resume} small={small} compact={small && !!url} /> : null;
+  if (link && copy) return <span className="inline-flex items-center gap-1">{link}{copy}</span>;
+  return link ?? copy;
+}
+
+/** Copies `claude --resume …`; `compact` (beside an Open link in a row) shows just the icon. */
+function ResumeButton({ resume, small, compact }: { resume: string; small: boolean; compact: boolean }) {
   const [copied, setCopied] = useState(false);
-  if (url) {
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className={clsx("rounded-xl bg-ink font-bold text-paper shadow-sm hover:opacity-90", small ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm")}
-      >
-        Open ↗
-      </a>
-    );
-  }
-  if (!resume) return null;
   return (
     <button
       type="button"
@@ -39,9 +46,10 @@ export function OpenSession({ url, resume, small = false }: { url: string | null
         }
       }}
       title={`Copy: ${resume}`}
+      aria-label={compact ? `Copy: ${resume}` : undefined}
       className={clsx("rounded-xl bg-ink font-mono font-bold text-paper shadow-sm hover:opacity-90", small ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs")}
     >
-      {copied ? "Copied!" : small ? "⧉ resume" : resume}
+      {copied ? (compact ? "✓" : "Copied!") : compact ? "⧉" : small ? "⧉ resume" : resume}
     </button>
   );
 }

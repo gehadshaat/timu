@@ -1,5 +1,6 @@
 import "server-only";
 import { all } from "../db";
+import { resumeFor } from "../links";
 import type { Org, TodoItem } from "../queries";
 import { clip } from "../text";
 import type { AgentRow, ProjectRow, SessionRow, TaskRow } from "../types";
@@ -102,6 +103,7 @@ export function placeOfSession(org: Org, s: Pick<SessionRow, "agent_id" | "team_
 
 export function sessionBrief(org: Org, s: SessionRow) {
   const { agent, team, project, goal } = placeOfSession(org, s);
+  const resume = resumeFor(s);
   return {
     id: s.id,
     title: s.title,
@@ -109,6 +111,8 @@ export function sessionBrief(org: Org, s: SessionRow) {
     source: s.source,
     repo: s.repo,
     url: s.url,
+    // How to pick it up in the terminal: local sessions, and cloud ones whose transcript is here too.
+    ...(resume ? { resume } : {}),
     last_activity_at: s.last_activity_at,
     summary: s.summary,
     teammate: agent ? { id: agent.id, name: agent.name } : null,

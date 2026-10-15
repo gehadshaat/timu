@@ -104,8 +104,8 @@ export function getRoutines(org: Org, filter: { projectId?: string; agentId?: st
   const routines = all<RoutineRow>("select * from routines order by coalesce(next_run_at, last_fired_at, created_at) desc");
   const ext = [...new Set(routines.flatMap((r) => [r.home_session, r.last_run_session]).filter((x): x is string => !!x))];
   const sessions = ext.length
-    ? all<{ id: string; external_id: string; title: string; url: string | null; source: SessionSource; agent_id: string | null; project_id: string | null }>(
-        "select id, external_id, title, url, source, agent_id, project_id from sessions where external_id in (select value from json_each(?))",
+    ? all<{ id: string; external_id: string; local_id: string | null; title: string; url: string | null; source: SessionSource; agent_id: string | null; project_id: string | null }>(
+        "select id, external_id, local_id, title, url, source, agent_id, project_id from sessions where external_id in (select value from json_each(?))",
         ext,
       )
     : [];

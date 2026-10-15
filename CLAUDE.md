@@ -70,6 +70,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `src/lib/live.ts`, `src/app/api/events/route.ts`, `components/LiveRefresh.tsx` | Live pages: a watcher polls `PRAGMA data_version`, `/api/events` streams `change`/`sync` (SSE), open tabs `router.refresh()`. |
 | `src/lib/bulk.ts` | Many-item writes. Each returns a `BulkResult` with an `UndoSnapshot`; `applyUndo` restores it. |
 | `src/lib/ingest.ts` | Upserts imported sessions, runs triage, opens/closes asks, links artifacts. |
+| `src/lib/twins.ts` | One conversation, one row: folds a local transcript into the cloud session it mirrors (Remote Control, teleport). |
 | `src/lib/sources/*.ts` | One parser per source: `local` (transcripts), `cloud`, `claudeai`, `routines`, `artifacts`. Pure functions → easy to test. |
 | `src/lib/claude-accounts.ts`, `claude-auth.ts`, `claude-auth-store.ts` | Which Claude accounts exist, their login (borrowed from Claude Code, re-read every pull, falls back on 401), and which one worked last. |
 | `src/lib/routines.ts`, `src/lib/artifacts.ts` | Routines and artifacts: save, file under teammate/project, views for boards. |
@@ -137,6 +138,11 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 - A new source = a pure parser in `src/lib/sources/`, tests for it, and an import path that runs through
   `ingestSessions(source, sessions, account)`.
 - Sign-in goes through `withClaudeToken` / `claudeTokens(account)`; never read `CLAUDE_SESSIONS_TOKEN` directly.
+- **A conversation that is both a transcript and a cloud session is one row, the cloud one** (`twins.ts`). The
+  transcript's `remote_session_change` line names its claude.ai/code session (`cloudId`); the transcript is
+  folded into that row (`local_id`, so `resumeFor()` offers `claude --resume` beside **Open**) or, if the cloud
+  session isn't imported yet, waits as a local row carrying `cloud_id`. Don't key anything new on a local
+  transcript id without going through `local_id` too (MCP's `findSessions` does).
 - Things are filed under a teammate/project via the session they belong to. Artifacts count only when a session
   **published** them (`publishedArtifactLinks`) — a session that merely lists or mentions them must not claim them.
 

@@ -13,7 +13,7 @@ export interface InboxItem {
 }
 
 const SESSION_LIST_COLUMNS =
-  "id, source, external_id, title, url, repo, branch, status, status_detail, first_user_message, last_message, last_message_role, message_count, started_at, last_activity_at, project_id, team_id, agent_id, goal_id, summary, classified_at, archived, title_locked, triage, status_override, account, (select count(*) from artifacts a where a.session_id = sessions.id) as artifact_count";
+  "id, source, external_id, title, url, repo, branch, status, status_detail, first_user_message, last_message, last_message_role, message_count, started_at, last_activity_at, project_id, team_id, agent_id, goal_id, summary, classified_at, archived, title_locked, triage, status_override, account, local_id, (select count(*) from artifacts a where a.session_id = sessions.id) as artifact_count";
 
 /** Open tasks, plus snoozed ones whose snooze has expired. */
 export async function getInbox(orgIn?: Org): Promise<InboxItem[]> {

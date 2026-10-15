@@ -21,6 +21,8 @@ export type Session = {
   lastAt: string | null
   open: string
   isArchived: boolean
+  /** A local transcript's claude.ai/code session (Remote Control, teleport): the same conversation. */
+  cloudId?: string | null
 }
 
 export type Filing = { project?: string; goal?: string }
@@ -96,7 +98,14 @@ type Line = {
   timestamp?: string
   aiTitle?: string
   summary?: string
+  attachment?: { type?: string; url?: string | null }
   message?: { stop_reason?: string | null; content?: string | Block[] }
+}
+
+/** The claude.ai/code session a link names, spelled `session_…` (Claude Code also writes `cse_…`). */
+export function cloudIdFromUrl(url: string | null | undefined): string | null {
+  const id = url?.match(/\/code\/((?:session|cse)_[A-Za-z0-9]+)/)?.[1]
+  return id ? id.replace(/^cse_/, 'session_') : null
 }
 
 /** A local Claude Code transcript (`~/.claude/projects/<folder>/<id>.jsonl`), one JSON object per line. */
@@ -109,6 +118,9 @@ export function parseTranscript(jsonl: string, opts: { fileId: string; mtimeMs: 
   let lastRole: 'user' | 'assistant' | null = null
   let lastStop: string | null = null
   let lastAt: string | null = null
+  // Claude Code writes the session's claude.ai/code link (Remote Control, cloud) as a
+  // `remote_session_change` line; it goes back to null when Remote Control is switched off.
+  let cloudId: string | null = null
 
   for (const raw of jsonl.split('\n')) {
     if (!raw.trim()) continue
@@ -120,6 +132,9 @@ export function parseTranscript(jsonl: string, opts: { fileId: string; mtimeMs: 
     }
     if (line.type === 'ai-title' && line.aiTitle) title = line.aiTitle
     if (line.type === 'summary' && line.summary) title ??= line.summary
+    if (line.type === 'attachment' && line.attachment?.type === 'remote_session_change' && !line.isSidechain) {
+      cloudId = cloudIdFromUrl(line.attachment.url) ?? cloudId
+    }
     if (line.type !== 'user' && line.type !== 'assistant') continue
     if (line.isSidechain) continue
     if (line.sessionId) id = line.sessionId
@@ -168,6 +183,7 @@ export function parseTranscript(jsonl: string, opts: { fileId: string; mtimeMs: 
     lastAt: lastAt ?? new Date(opts.mtimeMs).toISOString(),
     open: `claude --resume ${id}`,
     isArchived: false,
+    cloudId,
   }
 }
 
@@ -301,12 +317,22 @@ const ASK_DEFAULT: Record<AskKind, string> = { respond: 'Waiting on your reply',
 /** Files every session and decides its ask. Deterministic: the same input files the same way. */
 export function fileSessions(input: FileInput): Row[] {
   const here = new Set(input.hereIds.map(idKey))
-  // A cloud session's own transcript sits in its container too: show it once.
+  // One conversation, one row: a cloud session's own transcript sits in its container too, and a
+  // terminal session connected with Remote Control (or teleported) is also a cloud session.
+  // Only the first transcript to name a cloud session is that session; a fork of it is its own.
   const seen = new Set<string>()
+  const claimed = new Set<string>()
+  const keyOf = (s: Session): string => {
+    if ([s.id, s.cloudId].some(id => id && here.has(idKey(id)))) return 'here'
+    const cloud = s.cloudId ? idKey(s.cloudId) : null
+    if (!cloud || claimed.has(cloud)) return idKey(s.id)
+    claimed.add(cloud)
+    return cloud
+  }
   const sessions = [...input.sessions]
     .sort((a, b) => (a.source === b.source ? 0 : a.source === 'local' ? -1 : 1))
     .filter(s => {
-      const k = here.has(idKey(s.id)) ? 'here' : idKey(s.id)
+      const k = keyOf(s)
       if (seen.has(k)) return false
       seen.add(k)
       return true

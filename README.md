@@ -92,6 +92,8 @@ Anthropic doesn't publish an API for listing claude.ai/code sessions. Timu offer
 
    You can also POST the same JSON to `/api/ingest/cloud` with your ingest token.
 
+**One conversation, one row.** A terminal session you connect to claude.ai with Remote Control is a cloud session too, and a cloud session you teleport to the terminal leaves a local transcript. Claude Code writes the claude.ai/code link into the transcript, so Timu knows they are the same conversation and shows it once: as the cloud session, with **Open ↗** for claude.ai and **⧉** to copy its `claude --resume` command. Where you filed it, a title you gave it, its comments, asks and artifacts carry over from whichever copy you worked on. A transcript arriving before its cloud session has a row of its own until the cloud session is imported, and a fork of the conversation stays a session of its own.
+
 ### Several Claude accounts
 
 Timu syncs every Claude account you use, and files them all into the same companies, projects, teams and goals.
