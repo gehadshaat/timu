@@ -77,6 +77,7 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 | `src/lib/classify/`, `src/lib/organize.ts` | The organiser: files sessions into the org (Claude through the `claude -p` CLI in `src/lib/claude-cli.ts`, else heuristics). |
 | `src/lib/triage/` | Does a session genuinely need the user? Rules → TypeSafe/Claude → status. |
 | `src/lib/office-map.ts` | Layout maths for the walkable office (tested). |
+| `src/lib/clickup/` | The ClickUp mirror: `plan.ts` (pure: rows → the folders, lists and tasks ClickUp should have), `statuses.ts` (matches Timu statuses to a list's own), `client.ts` (REST client, waits out the rate limit), `mirror.ts` (pushes only what changed, remembered in `clickup_links`; runs at the end of `syncAll`). Tested against `fake-clickup.ts`. One-way: Timu → ClickUp. A new kind of thing in the org gets a place in `planMirror`. |
 | `src/lib/mcp/` | The MCP server: `server.ts` (instructions + registration), `tool.ts` (`defineTool`, refs), `resolve.ts` (id/slug/name lookup), `tools/*.ts`. |
 | `src/app/actions.ts`, `src/app/_actions/*` | Server actions the UI calls. Wrap writes in `refreshing(...)` (revalidates the layout). |
 | `src/app/(app)/**/page.tsx` | Pages (server components). |
@@ -176,10 +177,10 @@ Run `typecheck`, `lint` and `test` before every commit. All three must pass.
 
 | File | Keep it true about |
 | --- | --- |
-| `README.md` | Install (the **one** install path: clone → `npm start`), "Your first five minutes" (must match the setup wizard's real steps and button labels), "A tour" (screenshots), then reference sections: Sources (Cloud sessions, Several Claude accounts, Routines, Artifacts, Chrome extension), Let Claude run Timu (MCP), How organising works, Development. |
+| `README.md` | Install (the **one** install path: clone → `npm start`), "Your first five minutes" (must match the setup wizard's real steps and button labels), "A tour" (screenshots), then reference sections: Sources (Cloud sessions, Several Claude accounts, Routines, Artifacts, Chrome extension), Mirror into ClickUp, Let Claude run Timu (MCP), How organising works, Development. |
 | `.env.example` | Every environment variable, commented, grouped by section. |
 | `scripts/setup.mjs` | Anything a new user must have for the feature to work (generated tokens, prompts, printed next steps). |
-| `src/components/SourcesPanel.tsx`, `McpPanel.tsx` | In-app setup help on the Settings page. |
+| `src/components/SourcesPanel.tsx`, `McpPanel.tsx`, `ClickUpPanel.tsx` | In-app setup help on the Settings page. |
 | `docs/index.html` | The website: install terminal, first five minutes, tour, FAQ. Keep claims accurate (data, cost, sign-in). |
 | `docs/images/*.png` | Screenshots, from the **demo workspace only**. |
 

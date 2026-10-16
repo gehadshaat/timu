@@ -11,6 +11,7 @@ import { applyDraft, startOrganize, type OrganizeJob } from "@/lib/organize";
 import { ProposalSchema } from "@/lib/classify/schema";
 import * as ops from "@/lib/ops";
 import { syncNow } from "@/lib/auto-sync";
+import { pushToClickUp } from "@/lib/clickup/mirror";
 import { describeArtifacts, importArtifacts, moveArtifact } from "@/lib/artifacts";
 import { describeRoutines, importRoutinesFromApi, importRoutinesFromJson } from "@/lib/routines";
 import type { ActionResult, EntityKind, EntityValues, GoalInput, SessionFate, TodoInput } from "@/lib/ops";
@@ -131,6 +132,12 @@ export async function applyProposalAction(id: string, bodyJson: string): Promise
 /** Pull from every source that's configured, then file new sessions into the org. */
 export async function syncAllAction(): Promise<ActionResult> {
   return refreshing(syncNow());
+}
+
+/** Push to ClickUp now (Settings), instead of waiting for the next sync. */
+export async function pushClickUpAction(): Promise<ActionResult> {
+  const r = await refreshing(pushToClickUp(), "/settings");
+  return r.ok ? { ok: true, message: r.message } : { ok: false, message: r.message };
 }
 
 /** Wipe the org (keeps imported sessions) so setup can run again. */

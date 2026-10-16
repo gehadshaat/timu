@@ -28,10 +28,15 @@ export const SESSION_STATUS: Record<string, Tone> = {
  * Review / Stuck); once cleared, a "needs you" from Claude reads Idle. A status you set wins.
  */
 export function sessionTone(s: { status: string; status_override?: string | null }, hasAsk: boolean): Tone {
+  return SESSION_STATUS[boardStatus(s, hasAsk)] ?? SESSION_STATUS.idle;
+}
+
+/** The status key behind `sessionTone` (the ClickUp mirror shows the same one). */
+export function boardStatus(s: { status: string; status_override?: string | null }, hasAsk: boolean): string {
   const status = s.status_override ?? s.status;
-  if (hasAsk) return status === "review" || status === "failed" ? SESSION_STATUS[status] : SESSION_STATUS.needs_you;
-  if (status === "needs_you" || status === "review") return SESSION_STATUS.idle;
-  return SESSION_STATUS[status] ?? SESSION_STATUS.idle;
+  if (hasAsk) return status === "review" || status === "failed" ? status : "needs_you";
+  if (status === "needs_you" || status === "review") return "idle";
+  return SESSION_STATUS[status] ? status : "idle";
 }
 
 export const TODO_STATUS = {
