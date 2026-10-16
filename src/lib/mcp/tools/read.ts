@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { syncStatus } from "../../auto-sync";
 import { hasClaude } from "../../claude-cli";
+import { clickupLink, mirrorStatus } from "../../clickup/mirror";
 import { PROP_KINDS } from "../../classify/schema";
 import { get, getSetting } from "../../db";
 import { digestSince, getDigest } from "../../digest";
@@ -192,7 +193,8 @@ export function registerReadTools(server: McpServer): void {
     {
       title: "Session details",
       kind: "read",
-      description: "One session in full: owner, goal, status, first and last message, triage verdict, its open ask if it has one, and the artifacts it made.",
+      description:
+        "One session in full: owner, goal, status, first and last message, triage verdict, its open ask if it has one, the artifacts it made, and its ClickUp task (clickup_url) when ClickUp is mirrored.",
       input: z.object({ session: ref(SESSION_REF) }),
     },
     async ({ session }) => {
@@ -213,6 +215,7 @@ export function registerReadTools(server: McpServer): void {
         triage: s.triage,
         open_ask: task ? askBrief(org, task, s) : null,
         artifacts: getArtifacts(org, { sessionId: s.id }).map(artifactBrief),
+        clickup_url: clickupLink("session", s.id)?.url ?? null,
       };
     },
   );
@@ -305,6 +308,21 @@ export function registerReadTools(server: McpServer): void {
     };
   };
 
+  /** The ClickUp mirror, as get_settings reports it. */
+  const clickupBrief = () => {
+    const c = mirrorStatus();
+    return {
+      configured: c.configured,
+      workspace_id: c.workspaceId,
+      space_id: c.spaceId,
+      mirrored: c.mirrored,
+      running: c.running,
+      last_at: c.lastAt,
+      last_ok: c.lastOk,
+      last_message: c.lastMessage,
+    };
+  };
+
   defineTool(
     server,
     "get_settings",
@@ -312,7 +330,7 @@ export function registerReadTools(server: McpServer): void {
       title: "Settings and status",
       kind: "read",
       description:
-        "Timu's configuration and health: sources and their last import, auto-sync (how often, last and next run), the organiser and its current job, the triage engine, idle cut-off and triage memory rules (with ids for editing), plus the allowed project themes and teammate props.",
+        "Timu's configuration and health: sources and their last import, auto-sync (how often, last and next run), the ClickUp mirror (on or off, what's mirrored, last push), the organiser and its current job, the triage engine, idle cut-off and triage memory rules (with ids for editing), plus the allowed project themes and teammate props.",
       input: z.object({}),
     },
     async () => {
@@ -330,6 +348,7 @@ export function registerReadTools(server: McpServer): void {
         organize_job: job,
         cloud_pull_configured: !!cloudConfigFromEnv(),
         auto_sync: autoSync(),
+        clickup: clickupBrief(),
         sources,
         triage: {
           engine: triageEngine(),

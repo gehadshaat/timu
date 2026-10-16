@@ -1,8 +1,10 @@
+import { ClickUpPanel } from "@/components/ClickUpPanel";
 import { McpPanel } from "@/components/McpPanel";
 import { ResetOrgButton } from "@/components/ResetOrgButton";
 import { SourcesPanel } from "@/components/SourcesPanel";
 import { SyncButton } from "@/components/SyncButton";
 import { syncStatus } from "@/lib/auto-sync";
+import { mirrorStatus } from "@/lib/clickup/mirror";
 import { TriageMemory } from "@/components/TriageMemory";
 import { getMemory, getStaleDays, triageEngine } from "@/lib/triage";
 import { hasClaude } from "@/lib/classify/claude";
@@ -33,6 +35,8 @@ export default async function SettingsPage() {
       <SourcesPanel info={info} />
 
       <McpPanel tokenSet={!!process.env.TIMU_MCP_TOKEN?.trim()} repoDir={process.cwd()} />
+
+      <ClickUpPanel status={mirrorStatus()} />
 
       <TriageMemory memory={memory} engine={engine} staleDays={staleDays} />
 

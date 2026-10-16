@@ -7,6 +7,7 @@ import { startOrganize } from "./organize";
 import { describeRoutines, importRoutinesFromApi } from "./routines";
 import { ClaudeAuthError } from "./claude-auth";
 import { cloudConfigFromEnv } from "./sources/cloud";
+import { clickupConfigFromEnv, pushToClickUp, SYNC_BUDGET_MS } from "./clickup/mirror";
 import { THEMES, themeForSlug } from "./themes";
 import { getMemory, judgeSessions, saveMemory, STALE_KEY } from "./triage";
 import { DEFAULT_MEMORY, type MemoryItem } from "./triage/memory";
@@ -38,8 +39,9 @@ function found<T>(row: T | null, what: string): T {
 const AGENT_WITH_PROJECT = "select a.id, a.team_id, t.project_id from agents a join teams t on t.id = a.team_id where a.id = ?";
 
 /**
- * Pull from every source that's configured, judge sessions that have gone quiet, then file new sessions
- * into the org. `cloud: false` skips the cloud pulls (timed syncs read local transcripts more often).
+ * Pull from every source that's configured, judge sessions that have gone quiet, file new sessions
+ * into the org, then push changes to ClickUp when it's set up. `cloud: false` skips the cloud pulls
+ * (timed syncs read local transcripts more often).
  * Run it through syncNow (src/lib/auto-sync.ts), which keeps two syncs from overlapping.
  */
 export async function syncAll(opts: { cloud?: boolean } = {}): Promise<ActionResult> {
@@ -75,6 +77,11 @@ export async function syncAll(opts: { cloud?: boolean } = {}): Promise<ActionRes
     errors.push(`Triage: ${err instanceof Error ? err.message : String(err)}`);
   }
   await startOrganize("incremental");
+  // Mirror the org into ClickUp (only what changed; a long first push carries on over several syncs).
+  if (clickupConfigFromEnv()) {
+    const pushed = await pushToClickUp({ budgetMs: SYNC_BUDGET_MS });
+    (pushed.ok ? messages : errors).push(pushed.message);
+  }
   const text = [...messages, ...errors].join(" · ") || "Nothing to sync.";
   return errors.length && !messages.length ? { ok: false, message: text } : { ok: true, message: text };
 }

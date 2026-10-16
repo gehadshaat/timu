@@ -2,6 +2,7 @@ import "server-only";
 import { McpServer } from "@modelcontextprotocol/server";
 import { registerArtifactTools } from "./tools/artifacts";
 import { registerBulkTools } from "./tools/bulk";
+import { registerClickUpTools } from "./tools/clickup";
 import { registerNoteTools } from "./tools/notes";
 import { registerOrgTools } from "./tools/org";
 import { registerReadTools } from "./tools/read";
@@ -25,6 +26,8 @@ Timu syncs by itself (by default local transcripts every minute, cloud sessions 
 
 Routines (Claude Code's scheduled cloud agents and the check-ins sessions schedule for themselves) are in list_routines; import_routines takes the RemoteTrigger list output. Artifacts (pages published to claude.ai and artifacts made in claude.ai chats) are in list_artifacts, filterable by company, project, goal, teammate or session; import_artifacts takes the list your artifact tool prints, move_artifact files one. get_org, get_project, get_teammate and get_session include artifacts too.
 
+When ClickUp is set up (get_settings → clickup), every sync also mirrors the org into one ClickUp Space: a folder per project, a list per team plus Goals and To-dos, and a task per session, goal, milestone and to-do. It is one-way, so make changes here, not in ClickUp; push_to_clickup sends them at once, and get_session gives a session's clickup_url.
+
 For many things at once use the bulk tools: handle_asks, move_sessions, archive_sessions, refile_sessions, set_session_status, add_todos (one per line, with @person #project !high due:fri), update_todos, add_goals, add_milestones, hire_teammates, move_teammates, move_projects. Changes that can be undone return an undo_id; pass it to undo. search finds anything by name; comments (list_comments, add_comment) hold notes and decisions on any company, project, team, teammate, goal, session or to-do.`;
 
 /** A fresh Timu MCP server. Built per request over HTTP and once per connection over stdio. */
@@ -38,5 +41,6 @@ export function createTimuMcp(): McpServer {
   registerNoteTools(server);
   registerRoutineTools(server);
   registerArtifactTools(server);
+  registerClickUpTools(server);
   return server;
 }

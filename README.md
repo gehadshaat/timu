@@ -147,6 +147,39 @@ How they're filed:
 
 The extension reads claude.ai's own web API with your existing session cookies. It sends conversations only to the Timu URL you configure. That web API is unofficial, so if it changes, the data export still works.
 
+## Mirror into ClickUp
+
+Timu can keep a copy of your org in [ClickUp](https://clickup.com), so you can follow your Claude sessions next to the rest of your work. After every sync it pushes into one ClickUp Space:
+
+```
+Timu                                (Space)
+├─ Sunbeam Co · 🌞 Sunbeam Web      (Folder: one per project)
+│  ├─ Frontend                      (List: one per team; a task per session)
+│  ├─ No team                       (sessions filed to the project but no team)
+│  ├─ 🎯 Goals                       (goals; their milestones are subtasks)
+│  └─ ✅ To-dos
+├─ Duckworks · 🦆 Procurement App
+├─ 📥 Unfiled sessions
+└─ ✅ To-dos                         (to-dos with no project)
+```
+
+- **Session tasks** show the status the session's board cell shows, with the teammate as a tag. The description holds the open ask, the summary, the goal, the source, the repo and branch, a link to open the session, the `claude --resume` command and the artifacts it made.
+- **Goals, milestones and to-dos** carry their status, priority and due date. To-dos assigned to a teammate are tagged with them.
+- **Only what changed is sent.** A quiet workspace costs no requests. ClickUp allows 100 requests a minute on most plans, so a first push of a big workspace fills in over a few syncs, most recent sessions first. Each timed sync pushes for at most 25 seconds.
+- **It's one-way.** Change things in Timu. An edit made in ClickUp stays until that session, goal or to-do changes in Timu, which replaces it. Moving a session to another team moves its task. Archived sessions and deleted goals or to-dos are archived in ClickUp, never deleted.
+
+**Turn it on:**
+
+1. In ClickUp, open **Settings → Apps** and copy your **API Token** (it starts with `pk_`).
+2. Add it to `.env.local` as `CLICKUP_API_TOKEN=pk_…`, then restart Timu.
+3. **Settings → Mirror into ClickUp** shows what's mirrored and has a **Push to ClickUp now** button. Otherwise the next sync pushes by itself.
+
+Timu writes into a Space called "Timu" in your first workspace, and makes it if it's missing. Set `CLICKUP_SPACE_ID` to use a Space you already have, `CLICKUP_SPACE_NAME` to use another name, or `CLICKUP_WORKSPACE_ID` if your token can see several workspaces.
+
+**Statuses:** ClickUp doesn't let apps create statuses, so Timu matches the Space's own statuses by name. For an exact fit, add **idle** (not started), **working**, **needs you**, **review**, **failed** (active) and **done** (closed) to the Space. Without them, sessions use "to do", "in progress" and "complete", and the task's description gives the exact status.
+
+For Claude: `push_to_clickup` pushes now, `get_settings` → `clickup` shows what's mirrored, and `get_session` includes the session's `clickup_url`.
+
 ## Let Claude run Timu (MCP)
 
 Timu is also an MCP server, so Claude can do everything you can do in the UI: "file my unfiled sessions", "set up a Marketing team for Sunbeam with an SEO lead", "what needs me today?", "close the asks about merged PRs and remember that rule".
@@ -155,7 +188,8 @@ Everything the UI does in bulk works over MCP too: handle many asks at once, mov
 
 - set a session's status, like the board's status cell (`set_session_status`: needs_me / done / idle / claude);
 - read and import your routines (`list_routines`, `import_routines`);
-- read, import and file your artifacts at any level (`list_artifacts` by company, project, goal, teammate or session; `import_artifacts`; `move_artifact`).
+- read, import and file your artifacts at any level (`list_artifacts` by company, project, goal, teammate or session; `import_artifacts`; `move_artifact`);
+- push the org into ClickUp now (`push_to_clickup`; see [Mirror into ClickUp](#mirror-into-clickup)).
 
 `get_org`, `get_project`, `get_teammate` and `get_session` include the related artifacts.
 
